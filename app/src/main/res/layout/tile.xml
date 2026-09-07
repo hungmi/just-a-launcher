@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="200dp"
-    android:layout_height="112dp"
+    android:layout_width="160dp"
+    android:layout_height="90dp"
     android:background="@drawable/tile_bg">
 
     <ImageView
@@ -20,7 +20,7 @@
         android:padding="4dp"
         android:background="#99000000"
         android:textColor="#FFFFFFFF"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:maxLines="1"
         android:ellipsize="end" />
 </FrameLayout>

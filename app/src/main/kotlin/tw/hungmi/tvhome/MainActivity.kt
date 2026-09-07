@@ -10,7 +10,6 @@ import android.content.IntentFilter
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -85,13 +84,7 @@ class MainActivity : Activity() {
             }
             .sortedBy { it.label.lowercase() }
 
-        val settings = Tile(
-            getString(R.string.settings),
-            getDrawable(android.R.drawable.ic_menu_preferences),
-            false,
-            Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        )
-        adapter.items = apps + settings
+        adapter.items = apps
         adapter.notifyDataSetChanged()
     }
 
@@ -120,7 +113,7 @@ class MainActivity : Activity() {
                 image.setPadding(0, 0, 0, 0)
                 label.visibility = View.GONE
             } else {
-                val pad = (24 * parent.resources.displayMetrics.density).toInt()
+                val pad = (18 * parent.resources.displayMetrics.density).toInt()
                 image.setPadding(pad, pad, pad, pad)
                 label.text = tile.label
                 label.visibility = View.VISIBLE
