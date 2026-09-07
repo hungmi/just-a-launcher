@@ -1,0 +1,32 @@
+name: build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Restore keystore
+        run: echo "$KEYSTORE_B64" | base64 -d > release.p12
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+      - name: Build
+        run: gradle assembleRelease --no-daemon
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: tvhome
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tvhome-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">tvhome</string>
+    <string name="settings">設定</string>
+    <string name="launch_failed">無法開啟</string>
+</resources>
