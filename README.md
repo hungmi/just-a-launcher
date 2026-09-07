@@ -10,6 +10,13 @@
 - Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
 - 電腦上有 adb，電視開啟開發人員選項 → USB / 網路偵錯
 
+想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。或用 adb：
+
+```
+adb shell getprop ro.build.version.sdk      # ≥ 21
+adb shell pm list features | grep leanback  # 有輸出才是 Android TV
+```
+
 ## 安裝
 
 ```
