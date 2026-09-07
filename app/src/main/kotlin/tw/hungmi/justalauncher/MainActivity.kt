@@ -1,4 +1,4 @@
-package tw.hungmi.tvhome
+package tw.hungmi.justalauncher
 
 import android.app.Activity
 import android.content.ActivityNotFoundException

@@ -1,11 +1,11 @@
-# tvhome
+# just-a-launcher
 
 最小 Android TV launcher：一個 GridView 列出所有 TV app（LEANBACK_LAUNCHER），沒有動畫、桌布、
 推薦列、常駐服務。常駐記憶體約 30MB（Google TV 首頁 200MB+、Projectivy 80MB）。
 
 原本是給 BenQ GV01 投影機（Android TV 14、2GB RAM）做的，任何 Android TV / Google TV 都能用。
 
-![tvhome 首頁](docs/screenshot.png)
+![just-a-launcher 首頁](docs/screenshot.png)
 
 ## 需求
 
@@ -22,13 +22,13 @@ adb shell pm list features | grep leanback  # 有輸出才是 Android TV
 
 ## 安裝
 
-APK 在 [Releases](https://github.com/hungmi/tvhome/releases/latest)，固定網址
-`https://github.com/hungmi/tvhome/releases/latest/download/tvhome.apk`。
+APK 在 [Releases](https://github.com/hungmi/just-a-launcher/releases/latest)，固定網址
+`https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk`。
 
 ```
 adb connect <電視 IP>
-adb install -r tvhome.apk
-adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
+adb install -r just-a-launcher.apk
+adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
 ```
 
 按 HOME 鍵就是新首頁。電視沒有「選預設首頁」的 UI，一定要用第三行那個指令。
@@ -42,7 +42,7 @@ adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
 <summary>中文 prompt</summary>
 
 ```
-請幫我把 tvhome（https://github.com/hungmi/tvhome）裝到我的 Android TV 並設為首頁。
+請幫我把 just-a-launcher（https://github.com/hungmi/just-a-launcher）裝到我的 Android TV 並設為首頁。
 指令你自己執行，每一步用白話說明你在做什麼。
 
 規則
@@ -64,14 +64,14 @@ adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
    d. 都找不到 → 請我到電視「設定 → 網路 → 狀態」看 IP。
 4. 安裝：
         adb connect <IP>:5555        # 電視會跳「允許偵錯？」，提醒我在電視按允許
-        curl -LO https://github.com/hungmi/tvhome/releases/latest/download/tvhome.apk
-        adb install -r tvhome.apk
+        curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk
+        adb install -r just-a-launcher.apk
    若出現 INSTALL_FAILED_OLDER_SDK 或 INSTALL_FAILED_MISSING_FEATURE，代表這台不支援，
    停下來告訴我，不要想辦法繞過。
 5. 設首頁前先記下原本的首頁，之後還原用：
         adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
    然後：
-        adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
+        adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
         adb shell input keyevent KEYCODE_HOME
 6. 請我看電視：應該是黑底、一格一格的 app。請我用遙控器試 D-pad 移動、OK 開一個 app、HOME 回來。
 7. 最後給我一行還原指令：
@@ -84,7 +84,7 @@ adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
 <summary>English prompt</summary>
 
 ```
-Install tvhome (https://github.com/hungmi/tvhome) on my Android TV and make it the home screen.
+Install just-a-launcher (https://github.com/hungmi/just-a-launcher) on my Android TV and make it the home screen.
 Run the commands yourself and explain each step in plain language.
 
 Rules
@@ -106,14 +106,14 @@ Rules
    d. Still nothing -> ask me to read the IP from the TV: Settings -> Network -> Status.
 4. Install:
         adb connect <IP>:5555        # the TV shows "Allow debugging?" - tell me to accept it on the TV
-        curl -LO https://github.com/hungmi/tvhome/releases/latest/download/tvhome.apk
-        adb install -r tvhome.apk
+        curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk
+        adb install -r just-a-launcher.apk
    If you see INSTALL_FAILED_OLDER_SDK or INSTALL_FAILED_MISSING_FEATURE the device is not supported.
    Stop and tell me; do not try to work around it.
 5. Before changing the home screen, record the current one so it can be restored:
         adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
    Then:
-        adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
+        adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
         adb shell input keyevent KEYCODE_HOME
 6. Ask me to look at the TV: a black screen with a grid of app tiles. Have me test D-pad movement,
    OK to open an app, HOME to come back.
@@ -139,6 +139,6 @@ D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那
 
 ## 編譯
 
-GitHub Actions（`.github/workflows/build.yml`）：push 到 main 就編，artifact `tvhome-apk`；
-推 `v*` tag 會建 Release 並附上 `tvhome.apk`。
+GitHub Actions（`.github/workflows/build.yml`）：push 到 main 就編，artifact `just-a-launcher.apk`；
+推 `v*` tag 會建 Release 並附上 `just-a-launcher.apk`。
 簽名金鑰放 secrets `KEYSTORE_B64`（PKCS12 base64）、`KEYSTORE_PASSWORD`，alias `tvhome`。

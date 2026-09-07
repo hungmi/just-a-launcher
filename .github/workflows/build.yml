@@ -32,7 +32,7 @@ jobs:
           KEY_ALIAS: tvhome
       - uses: actions/upload-artifact@v4
         with:
-          name: tvhome-apk
+          name: just-a-launcher-apk
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
       - name: Release
@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/release/app-release.apk tvhome.apk
-          cp tvhome.apk "tvhome-${GITHUB_REF_NAME}.apk"
-          gh release create "$GITHUB_REF_NAME" tvhome.apk "tvhome-${GITHUB_REF_NAME}.apk" \
+          cp app/build/outputs/apk/release/app-release.apk just-a-launcher.apk
+          cp just-a-launcher.apk "just-a-launcher-${GITHUB_REF_NAME}.apk"
+          gh release create "$GITHUB_REF_NAME" just-a-launcher.apk "just-a-launcher-${GITHUB_REF_NAME}.apk" \
             --title "$GITHUB_REF_NAME" --generate-notes

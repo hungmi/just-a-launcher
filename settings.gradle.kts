@@ -4,5 +4,5 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories { google(); mavenCentral() }
 }
-rootProject.name = "tvhome"
+rootProject.name = "just-a-launcher"
 include(":app")
