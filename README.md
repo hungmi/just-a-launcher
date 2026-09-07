@@ -9,6 +9,7 @@
 
 - Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
 - 電腦上有 adb，電視開啟開發人員選項 → USB / 網路偵錯
+- 電腦和電視連同一個 Wi-Fi / 區網（訪客網路通常會隔離裝置，不行）
 
 想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。或用 adb：
 
@@ -48,6 +49,7 @@ adb shell cmd package set-home-activity --user 0 tw.hungmi.tvhome/.MainActivity
 2. 先確認 adb 已安裝，沒有就依我的作業系統裝：macOS `brew install android-platform-tools`、
    Debian/Ubuntu `apt install adb`、Arch `pacman -S android-tools`、Windows 下載 Google platform-tools。
 3. 找電視 IP，照這個順序。確定就直接用，不確定就列選項問我：
+   前提：電腦和電視要在同一個 Wi-Fi / 區網，先提醒我確認（訪客網路會隔離裝置）。
    a. `adb devices` 已經有裝置 → 直接用。
    b. 掃區網哪台開著 5555 port（Android TV 的網路偵錯）。Linux/macOS 範例：
         net=$(ip -4 route get 1 | awk '{print $7}' | cut -d. -f1-3)   # macOS：ipconfig getifaddr en0
@@ -89,6 +91,7 @@ Rules
 2. Check that adb is installed; if not, install it for my OS: macOS `brew install android-platform-tools`,
    Debian/Ubuntu `apt install adb`, Arch `pacman -S android-tools`, Windows: download Google platform-tools.
 3. Find the TV's IP in this order. If it is unambiguous, use it; otherwise list the options and ask me:
+   First remind me that the computer and the TV must be on the same Wi-Fi / LAN (guest networks isolate devices).
    a. `adb devices` already shows a device -> use it.
    b. Scan the LAN for hosts with port 5555 open (Android TV network debugging). Linux/macOS example:
         net=$(ip -4 route get 1 | awk '{print $7}' | cut -d. -f1-3)   # macOS: ipconfig getifaddr en0
