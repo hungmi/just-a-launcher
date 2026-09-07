@@ -11,10 +11,10 @@ android {
 
     defaultConfig {
         applicationId = "tw.hungmi.tvhome"
-        minSdk = 31
+        minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.3"
+        versionCode = 4
+        versionName = "0.4"
     }
 
     signingConfigs {
