@@ -7,7 +7,7 @@
 
 ## 需求
 
-- Android TV / Google TV，Android 5.0（API 21）以上。手機、平板會拒裝（需要 leanback feature）
+- Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
 - 電腦上有 adb，電視開啟開發人員選項 → USB / 網路偵錯
 
 ## 安裝
