@@ -141,4 +141,4 @@ D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那
 
 GitHub Actions（`.github/workflows/build.yml`）：push 到 main 就編，artifact `just-a-launcher.apk`；
 推 `v*` tag 會建 Release 並附上 `just-a-launcher.apk`。
-簽名金鑰放 secrets `KEYSTORE_B64`（PKCS12 base64）、`KEYSTORE_PASSWORD`，alias `tvhome`。
+簽名金鑰放 secrets `KEYSTORE_B64`（PKCS12 base64）、`KEYSTORE_PASSWORD`，alias `just-a-launcher`。

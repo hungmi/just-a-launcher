@@ -22,7 +22,7 @@ android {
             storeFile = rootProject.file(System.getenv("KEYSTORE_FILE") ?: "release.p12")
             storeType = "PKCS12"
             storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS") ?: "tvhome"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "just-a-launcher"
             keyPassword = System.getenv("KEYSTORE_PASSWORD")
         }
     }
