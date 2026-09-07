@@ -123,7 +123,7 @@ Rules
 
 </details>
 
-## 還原
+## 還原 / 切回原本的首頁
 
 ```
 adb shell cmd package set-home-activity --user 0 <原本的 launcher>/<activity>
@@ -131,6 +131,10 @@ adb shell cmd package set-home-activity --user 0 <原本的 launcher>/<activity>
 
 原本的 launcher 用這個查：`adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME`。
 Google TV 是 `com.google.android.apps.tv.launcherx/.home.HomeActivity`（若被停用要先 `pm enable --user 0`）。
+
+**沒有 adb 能做的**：設定 → 應用程式 → 查看所有應用程式 → 顯示系統應用程式 → 原本的首頁 app →
+「啟用」/「開啟」，可以把它當一般 app 打開。**沒有 adb 不能做的**：把它設回 HOME 鍵的預設首頁，
+Android TV 沒有這個介面。移除 just-a-launcher 也一樣：先用 adb 把首頁設回去，再移除，否則按 HOME 會黑畫面。
 
 ## 操作
 
