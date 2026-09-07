@@ -5,6 +5,8 @@
 
 原本是給 BenQ GV01 投影機（Android TV 14、2GB RAM）做的，任何 Android TV / Google TV 都能用。
 
+![tvhome 首頁](docs/screenshot.png)
+
 ## 需求
 
 - Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
