@@ -11,12 +11,15 @@
 
 在 BenQ GV01（MediaTek MT9632，4 核 A55 1.55GHz，2GB RAM）上量的，投影機停在首頁**沒人碰**：
 
-| | Google TV 首頁 | just-a-launcher |
-|---|---|---|
-| 閒置每秒重畫 | 56 | 0 |
-| 首頁 CPU | 49% | 2.6% |
-| 畫面合成（surfaceflinger）CPU | 33% | ~0 |
-| 常駐 RAM（PSS） | ~200MB | 32MB |
+| | Google TV 首頁 | Projectivy Launcher | just-a-launcher |
+|---|---|---|---|
+| 閒置每秒重畫 | 56 | 60，關掉動態桌布和聚焦動畫後 0 | 0 |
+| 首頁 CPU | 49% | 2.6% | 0% |
+| 畫面合成（surfaceflinger）CPU | 33% | ~0 | 0% |
+| 常駐 RAM（PSS） | ~200MB | 80MB（另 27MB 在 zram） | 32MB |
+
+Projectivy 是很好的替代品，關掉特效後 CPU 也降下來，但功能多所以 RAM 是 2.5 倍，
+而且有開機廣播，不當首頁也會常駐。
 
 CPU 100% = 四核全滿。Google TV 首頁自己播預覽、跑動畫，閒置就吃掉 82%（約 3.3 核），
 遙控器按鍵和影片解碼都在排隊，這是「慢」的主因。
