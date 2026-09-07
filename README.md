@@ -7,6 +7,27 @@
 
 ![just-a-launcher 首頁](docs/screenshot.png)
 
+## 為什麼
+
+在 BenQ GV01（MediaTek MT9632，4 核 A55 1.55GHz，2GB RAM）上量的，投影機停在首頁**沒人碰**：
+
+| | Google TV 首頁 | just-a-launcher |
+|---|---|---|
+| 閒置每秒重畫 | 56 | 0 |
+| 首頁 CPU | 49% | 2.6% |
+| 畫面合成（surfaceflinger）CPU | 33% | ~0 |
+| 常駐 RAM（PSS） | ~200MB | 32MB |
+
+CPU 100% = 四核全滿。Google TV 首頁自己播預覽、跑動畫，閒置就吃掉 82%（約 3.3 核），
+遙控器按鍵和影片解碼都在排隊，這是「慢」的主因。
+
+RAM 的影響是非線性的：可用記憶體從 73MB 變 625MB，Netflix、YouTube 可以同時留在記憶體，
+切換是 1 秒而不是被殺掉後冷啟動 10 秒。同樣的 170MB 在 8GB 的電視上幾乎沒感覺，
+在 2GB 的裝置上是「每開一個 app 就殺一個」和「常用的都留著」的差別。
+
+量法：`adb shell dumpsys cpuinfo | head`、`adb shell dumpsys gfxinfo <套件> | grep 'Total frames'`（隔 10 秒量兩次取差）、
+`adb shell dumpsys meminfo <套件> | grep 'TOTAL PSS'`。
+
 ## 需求
 
 - Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
