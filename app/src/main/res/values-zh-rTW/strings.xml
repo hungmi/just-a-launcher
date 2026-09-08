@@ -1,0 +1,4 @@
+<resources>
+    <string name="inputs">訊號源</string>
+    <string name="launch_failed">無法開啟</string>
+</resources>

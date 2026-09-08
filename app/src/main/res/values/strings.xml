@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Just a Launcher</string>
-    <string name="launch_failed">無法開啟</string>
+    <string name="inputs">Inputs</string>
+    <string name="launch_failed">Can\'t open</string>
 </resources>

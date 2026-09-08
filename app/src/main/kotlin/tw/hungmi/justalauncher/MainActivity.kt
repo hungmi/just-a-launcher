@@ -1,7 +1,6 @@
 package tw.hungmi.justalauncher
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -18,6 +17,8 @@ import android.widget.GridView
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+
+private const val ACTION_VIEW_INPUTS = "com.android.tv.action.VIEW_INPUTS"
 
 class Tile(val label: String, val image: Drawable?, val isBanner: Boolean, val intent: Intent)
 
@@ -84,14 +85,19 @@ class MainActivity : Activity() {
             }
             .sortedBy { it.label.lowercase() }
 
-        adapter.items = apps
+        // Google TV 內建的輸入端選單（inputplayer）。沒有這個 app 的裝置就不顯示
+        val inputs = Intent(ACTION_VIEW_INPUTS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val inputsTile = if (pm.resolveActivity(inputs, 0) != null)
+            Tile(getString(R.string.inputs), getDrawable(R.drawable.ic_hdmi), false, inputs) else null
+
+        adapter.items = apps + listOfNotNull(inputsTile)
         adapter.notifyDataSetChanged()
     }
 
     private fun launch(tile: Tile) {
         try {
             startActivity(tile.intent)
-        } catch (e: ActivityNotFoundException) {
+        } catch (e: Exception) { // ActivityNotFoundException、SecurityException
             Toast.makeText(this, "${getString(R.string.launch_failed)} ${tile.label}", Toast.LENGTH_SHORT).show()
         }
     }

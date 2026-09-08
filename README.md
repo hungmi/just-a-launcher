@@ -171,7 +171,11 @@ Android TV 沒有這個介面。移除 just-a-launcher 也一樣：先用 adb �
 ## 操作
 
 D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那格（齒輪）。
-沒有其他功能，也不打算加。HDMI 切換用遙控器的輸入源鍵。
+
+最後一格「訊號源」打開 Google TV 內建的輸入端選單（HDMI 1 / HDMI 2 / …），跟遙控器的訊號源鍵是同一個畫面。
+裝置沒有這個內建選單（`com.google.android.tv.inputplayer`）就不會出現這格。
+
+沒有其他功能，也不打算加。
 
 ## 編譯
 
