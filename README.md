@@ -11,12 +11,16 @@
 
 在 BenQ GV01（MediaTek MT9632，4 核 A55 1.55GHz，2GB RAM）上量的，投影機停在首頁**沒人碰**：
 
-| | Google TV 首頁 | Projectivy Launcher | just-a-launcher |
-|---|---|---|---|
-| 閒置每秒重畫 | 56 | 60，關掉動態桌布和聚焦動畫後 0 | 0 |
-| 首頁 CPU | 49% | 2.6% | 0% |
-| 畫面合成（surfaceflinger）CPU | 33% | ~0 | 0% |
-| 常駐 RAM（PSS） | ~200MB | 80MB（另 27MB 在 zram） | 32MB |
+| | Google TV 首頁 | Google TV 僅限應用程式模式 | Projectivy Launcher | just-a-launcher |
+|---|---|---|---|---|
+| 閒置每秒重畫 | 56 | 焦點在 app 格子 61；焦點在頂部輪播 5.7 | 60，關掉動態桌布和聚焦動畫後 0 | 0 |
+| 首頁 CPU | 49% | 41% / 40% | 2.6% | 0% |
+| 畫面合成（surfaceflinger）CPU | 33% | 34% / 11% | ~0 | 0% |
+| 常駐 RAM（PSS） | ~200MB | 148MB | 80MB（另 27MB 在 zram） | 32MB |
+| 廣告 | 有 | 頂部整頁輪播還在 | 無 | 無 |
+
+「僅限應用程式模式」（設定 → 帳戶與登入 → 帳戶 → Apps only mode）拿掉推薦列和預覽影片，
+但頂部輪播廣告還在，聚焦光圈仍每秒重畫 60 次，閒置 CPU 只從 49% 降到 40%。
 
 Projectivy 是很好的替代品，關掉特效後 CPU 也降下來，但功能多所以 RAM 是 2.5 倍，
 而且有開機廣播，不當首頁也會常駐。
