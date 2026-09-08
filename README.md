@@ -1,7 +1,7 @@
 # just-a-launcher
 
 最小 Android TV launcher：一個 GridView 列出所有 TV app（LEANBACK_LAUNCHER），沒有動畫、桌布、
-推薦列、常駐服務。常駐記憶體約 30MB（Google TV 首頁 200MB+、Projectivy 80MB）。
+推薦列、常駐服務。常駐記憶體約 35MB（Google TV 首頁 193MB、Projectivy 80MB）。
 
 原本是給 BenQ GV01 投影機（Android TV 14、2GB RAM）做的，任何 Android TV / Google TV 都能用。
 
@@ -9,8 +9,8 @@
 
 ## 為什麼
 
-在 BenQ GV01（MediaTek MT9632，4 核 A55 1.55GHz，2GB RAM）上量的。投影機停在首頁、焦點在 app 格子、
-**遙控器不碰**，每分鐘取樣一次連續 9 分鐘，數字全程沒有浮動：
+測試機：BenQ GV01 投影機（MediaTek MT9632，4 核 A55 1.55GHz，2GB RAM，Android TV 14）。
+停在首頁、焦點在 app 格子、遙控器不碰，每分鐘取樣一次連續 9 分鐘，數字全程沒有浮動：
 
 | 閒置 | Google TV 首頁 | Google TV 僅限應用程式模式 | Projectivy Launcher* | just-a-launcher |
 |---|---|---|---|---|
@@ -21,15 +21,15 @@
 | 每秒重畫 | 61 | 61 | 0 | 0 |
 | 廣告 | 有 | 頂部整頁輪播還在 | 無 | 無 |
 
-\* Projectivy 是前一天單次取樣，已關掉動態桌布和聚焦動畫；預設設定下每秒重畫 60 次。
+\* Projectivy 為單次取樣，已在其設定中關掉動態桌布和聚焦動畫；預設設定下每秒重畫 60 次。
 
 Google TV 首頁閒置時聚焦光圈每秒重畫 61 次，首頁加畫面合成佔掉 0.8 核，整台機器閒置就有四成在忙。
 遙控器按鍵、影片解碼都跟它搶，這是「慢」的主因。「僅限應用程式模式」（設定 → 帳戶與登入 → 帳戶）
 拿掉推薦列和預覽影片，省了 57MB，但頂部輪播廣告還在、光圈照樣重畫，CPU 幾乎沒變。
 
-RAM 的影響是非線性的：可用記憶體從 73MB 變 625MB 後，Netflix、YouTube 可以同時留在記憶體，
-切換 1 秒而不是被殺掉後冷啟動 10 秒。同樣的 160MB 在 8GB 的電視上幾乎沒感覉，
-在 2GB 的裝置上是「每開一個 app 就殺一個」和「常用的都留著」的差別。
+RAM 的影響是非線性的。2GB 的裝置扣掉系統後可用的只有三、四百 MB，首頁少佔 160MB，
+Netflix、YouTube 就能同時留在記憶體，切換 1 秒而不是被殺掉後冷啟動 10 秒。
+同樣的 160MB 在 8GB 的電視上幾乎沒感覺。
 
 量法（`dumpsys cpuinfo` 每個程序的 % 是佔一核，只有 TOTAL 是佔全部核心）：
 
@@ -175,13 +175,13 @@ D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那
 最後一格（HDMI 插頭圖示）打開 Google TV 內建的輸入端選單（HDMI 1 / HDMI 2 / …），跟遙控器的訊號源鍵是同一個畫面。
 裝置沒有這個內建選單（`com.google.android.tv.inputplayer`）就不會出現這格。
 
-這格故意不放文字：在這台機器上，畫面只要出現任何一個字，字型檔、排版程式庫、字元貼圖快取就要多 8MB。
+這格故意不放文字：測試機上畫面只要出現任何一個字，字型檔、排版程式庫、字元貼圖快取就要多 8MB。
 整個首頁零文字是 35MB 的前提。
 
 沒有其他功能，也不打算加。
 
-## 編譯
+## 自己編（fork 才需要）
 
-GitHub Actions（`.github/workflows/build.yml`）：push 到 main 就編，artifact `just-a-launcher.apk`；
-推 `v*` tag 會建 Release 並附上 `just-a-launcher.apk`。
-簽名金鑰放 secrets `KEYSTORE_B64`（PKCS12 base64）、`KEYSTORE_PASSWORD`，alias `just-a-launcher`。
+GitHub Actions（`.github/workflows/build.yml`）：push 到 main 就編出 artifact，推 `v*` tag 會建 Release
+並附上 `just-a-launcher.apk`。需要在 repo secrets 放自己的簽名金鑰：`KEYSTORE_B64`（PKCS12 檔 base64）、
+`KEYSTORE_PASSWORD`，alias `just-a-launcher`。沒有 Android SDK 的機器也能用這條路編。
