@@ -57,13 +57,40 @@ adb shell pm list features | grep leanback  # 有輸出才是 Android TV
 APK 在 [Releases](https://github.com/hungmi/just-a-launcher/releases/latest)，固定網址
 `https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk`。
 
-```
-adb connect <電視 IP>
-adb install -r just-a-launcher.apk
-adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
-```
+1. 連線
+   ```
+   adb connect <電視 IP>
+   ```
+2. 記下原本的首頁，還原要用
+   ```
+   adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+   ```
+3. 安裝、設為首頁。電視沒有「選預設首頁」的 UI，一定要用第二行那個指令
+   ```
+   adb install -r just-a-launcher.apk
+   adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
+   ```
+4. 確認
+   ```
+   adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+   ```
+   印出 `tw.hungmi.justalauncher/.MainActivity` → **完成**，按 HOME 就是新首頁，下面不用做。
+   印出別的 → 繼續。Google TV 機型（BenQ GV01、小米盒子 S 2 代、Chromecast with Google TV…）
+   一定會印 `com.google.android.apps.tv.launcherx/...`，set-home-activity 對它沒用。
+5. 停用原本的首頁。**兩個都要停**：只停第一個，HOME 會被設定精靈（setupwraith）攔成黑畫面，
+   看起來像遙控器壞了。每停一個 adb 會斷線，重連
+   ```
+   adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
+   adb connect <電視 IP>
+   adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
+   adb connect <電視 IP>
+   ```
+6. 再跑一次第 4 步的指令，印出 `tw.hungmi.justalauncher/.MainActivity` 就完成。
 
-按 HOME 鍵就是新首頁。電視沒有「選預設首頁」的 UI，一定要用第三行那個指令。
+做了第 5 步的副作用：之後要**新增 Google 帳號**或 Play 商店要求重新登入時，先
+`adb shell pm enable --user 0 com.google.android.tungsten.setupwraith`，弄完再停用。
+
+第 2 步列出的不是 Google TV 的話沒測過。第 4 步不過就把第 5 步的套件換成第 2 步列出的那個。
 
 ## 讓 AI agent 幫你裝
 
@@ -78,8 +105,8 @@ adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainAc
 指令你自己執行，每一步用白話說明你在做什麼。
 
 規則
-1. 只能用 adb install 和 cmd package set-home-activity。不要 pm uninstall、不要 pm disable
-   任何東西、不要 root。
+1. 只能用 adb install、cmd package set-home-activity，以及對下面第 7 步指定的兩個套件
+   pm disable-user。不要 pm uninstall、不要停用其他東西、不要 root。
 2. 先確認 adb 已安裝，沒有就依我的作業系統裝：macOS `brew install android-platform-tools`、
    Debian/Ubuntu `apt install adb`、Arch `pacman -S android-tools`、Windows 下載 Google platform-tools。
 3. 找電視 IP，照這個順序。確定就直接用，不確定就列選項問我：
@@ -100,13 +127,21 @@ adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainAc
         adb install -r just-a-launcher.apk
    若出現 INSTALL_FAILED_OLDER_SDK 或 INSTALL_FAILED_MISSING_FEATURE，代表這台不支援，
    停下來告訴我，不要想辦法繞過。
-5. 設首頁前先記下原本的首頁，之後還原用：
+5. 記下原本的首頁，最後還原指令要用：
         adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
-   然後：
+6. 設為首頁，然後確認：
         adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
-        adb shell input keyevent KEYCODE_HOME
-6. 請我看電視：應該是黑底、一格一格的 app。請我用遙控器試 D-pad 移動、OK 開一個 app、HOME 回來。
-7. 最後給我一行還原指令：
+        adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+   印出 tw.hungmi.justalauncher/.MainActivity → 跳到第 8 步。印出別的 → 第 7 步。
+7. 停用原本的首頁。只在第 5 步清單有 com.google.android.apps.tv.launcherx（Google TV 機型）時做，
+   其他機型停下來問我。兩個都要停，只停第一個 HOME 會變黑畫面。每停一個 adb 會斷線，重新 adb connect：
+        adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
+        adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
+   再跑一次第 6 步的 resolve-activity，必須印出 tw.hungmi.justalauncher/.MainActivity。
+   提醒我：之後要新增 Google 帳號時，先 pm enable --user 0 com.google.android.tungsten.setupwraith，弄完再停。
+8. adb shell input keyevent KEYCODE_HOME，請我看電視：應該是黑底、一格一格的 app。
+   請我用遙控器試 D-pad 移動、OK 開一個 app、HOME 回來。
+9. 最後給我還原指令（有做第 7 步的話，先 pm enable --user 0 那兩個套件，再）：
         adb shell cmd package set-home-activity --user 0 <第 5 步記下的原本 launcher>
 ```
 
@@ -120,8 +155,8 @@ Install just-a-launcher (https://github.com/hungmi/just-a-launcher) on my Androi
 Run the commands yourself and explain each step in plain language.
 
 Rules
-1. Only `adb install` and `cmd package set-home-activity`. No `pm uninstall`, no `pm disable`,
-   no rooting.
+1. Only `adb install`, `cmd package set-home-activity`, and `pm disable-user` on the two packages
+   named in step 7. No `pm uninstall`, no disabling anything else, no rooting.
 2. Check that adb is installed; if not, install it for my OS: macOS `brew install android-platform-tools`,
    Debian/Ubuntu `apt install adb`, Arch `pacman -S android-tools`, Windows: download Google platform-tools.
 3. Find the TV's IP in this order. If it is unambiguous, use it; otherwise list the options and ask me:
@@ -142,14 +177,24 @@ Rules
         adb install -r just-a-launcher.apk
    If you see INSTALL_FAILED_OLDER_SDK or INSTALL_FAILED_MISSING_FEATURE the device is not supported.
    Stop and tell me; do not try to work around it.
-5. Before changing the home screen, record the current one so it can be restored:
+5. Record the current home screen; the undo command at the end needs it:
         adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
-   Then:
+6. Set the home screen, then verify:
         adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
-        adb shell input keyevent KEYCODE_HOME
-6. Ask me to look at the TV: a black screen with a grid of app tiles. Have me test D-pad movement,
-   OK to open an app, HOME to come back.
-7. Finish with the one-line undo command:
+        adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+   Prints tw.hungmi.justalauncher/.MainActivity -> skip to step 8. Prints anything else -> step 7.
+7. Disable the original home screen. Only do this if the step 5 list contains
+   com.google.android.apps.tv.launcherx (a Google TV device); on any other device stop and ask me.
+   Both packages are required; disabling only the first leaves HOME on a black screen.
+   adb disconnects after each one; run `adb connect` again:
+        adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
+        adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
+   Re-run the resolve-activity command from step 6; it must now print tw.hungmi.justalauncher/.MainActivity.
+   Remind me: to add a Google account later, first `pm enable --user 0 com.google.android.tungsten.setupwraith`,
+   then disable it again afterwards.
+8. `adb shell input keyevent KEYCODE_HOME` and ask me to look at the TV: a black screen with a grid of app tiles.
+   Have me test D-pad movement, OK to open an app, HOME to come back.
+9. Finish with the undo commands (if step 7 was done: `pm enable --user 0` both packages first, then):
         adb shell cmd package set-home-activity --user 0 <the original launcher from step 5>
 ```
 
@@ -162,11 +207,20 @@ adb shell cmd package set-home-activity --user 0 <原本的 launcher>/<activity>
 ```
 
 原本的 launcher 用這個查：`adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME`。
-Google TV 是 `com.google.android.apps.tv.launcherx/.home.HomeActivity`（若被停用要先 `pm enable --user 0`）。
+
+安裝時有做第 5 步（停用兩個套件）的話，先開回來再設：
+
+```
+adb shell pm enable --user 0 com.google.android.apps.tv.launcherx
+adb connect <電視 IP>
+adb shell pm enable --user 0 com.google.android.tungsten.setupwraith
+adb connect <電視 IP>
+adb shell cmd package set-home-activity --user 0 com.google.android.apps.tv.launcherx/.home.HomeActivity
+```
 
 **沒有 adb 能做的**：設定 → 應用程式 → 查看所有應用程式 → 顯示系統應用程式 → 原本的首頁 app →
 「啟用」/「開啟」，可以把它當一般 app 打開。**沒有 adb 不能做的**：把它設回 HOME 鍵的預設首頁，
-Android TV 沒有這個介面。移除 just-a-launcher 也一樣：先用 adb 把首頁設回去，再移除，否則按 HOME 會黑畫面。
+Android TV 沒有這個介面。移除 just-a-launcher 也一樣：先用 adb 照上面還原首頁，再 `adb uninstall tw.hungmi.justalauncher`，否則按 HOME 會黑畫面。
 
 ## 操作
 
