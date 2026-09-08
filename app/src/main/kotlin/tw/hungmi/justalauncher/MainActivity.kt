@@ -88,7 +88,7 @@ class MainActivity : Activity() {
         // Google TV 內建的輸入端選單（inputplayer）。沒有這個 app 的裝置就不顯示
         val inputs = Intent(ACTION_VIEW_INPUTS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val inputsTile = if (pm.resolveActivity(inputs, 0) != null)
-            Tile(getString(R.string.inputs), getDrawable(R.drawable.ic_hdmi), false, inputs) else null
+            Tile(getString(R.string.inputs), null, false, inputs) else null
 
         adapter.items = apps + listOfNotNull(inputsTile)
         adapter.notifyDataSetChanged()
@@ -114,7 +114,17 @@ class MainActivity : Activity() {
             val tile = items[position]
             val image = view.findViewById<ImageView>(R.id.image)
             val label = view.findViewById<TextView>(R.id.label)
+            val title = view.findViewById<TextView>(R.id.title)
             image.setImageDrawable(tile.image)
+            if (tile.image == null) { // 純文字格
+                image.visibility = View.GONE
+                label.visibility = View.GONE
+                title.text = tile.label
+                title.visibility = View.VISIBLE
+                return view
+            }
+            image.visibility = View.VISIBLE
+            title.visibility = View.GONE
             if (tile.isBanner) {
                 image.setPadding(0, 0, 0, 0)
                 label.visibility = View.GONE
