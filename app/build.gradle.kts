@@ -13,8 +13,8 @@ android {
         applicationId = "tw.hungmi.justalauncher"
         minSdk = 21
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.9"
+        versionCode = 7
+        versionName = "0.7"
     }
 
     signingConfigs {
