@@ -85,10 +85,11 @@ class MainActivity : Activity() {
             }
             .sortedBy { it.label.lowercase() }
 
-        // Google TV 內建的輸入端選單（inputplayer）。沒有這個 app 的裝置就不顯示
+        // Google TV 內建的輸入端選單（inputplayer）。沒有這個 app 的裝置就不顯示。
+        // 用 PNG banner 而不是文字：畫面上只要出現任何文字，字型、排版庫、字元貼圖快取就要 ~8MB
         val inputs = Intent(ACTION_VIEW_INPUTS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val inputsTile = if (pm.resolveActivity(inputs, 0) != null)
-            Tile(getString(R.string.inputs), null, false, inputs) else null
+            Tile(getString(R.string.inputs), getDrawable(R.drawable.banner_inputs), true, inputs) else null
 
         adapter.items = apps + listOfNotNull(inputsTile)
         adapter.notifyDataSetChanged()
@@ -114,17 +115,7 @@ class MainActivity : Activity() {
             val tile = items[position]
             val image = view.findViewById<ImageView>(R.id.image)
             val label = view.findViewById<TextView>(R.id.label)
-            val title = view.findViewById<TextView>(R.id.title)
             image.setImageDrawable(tile.image)
-            if (tile.image == null) { // 純文字格
-                image.visibility = View.GONE
-                label.visibility = View.GONE
-                title.text = tile.label
-                title.visibility = View.VISIBLE
-                return view
-            }
-            image.visibility = View.VISIBLE
-            title.visibility = View.GONE
             if (tile.isBanner) {
                 image.setPadding(0, 0, 0, 0)
                 label.visibility = View.GONE

@@ -11,16 +11,6 @@
         android:scaleType="fitCenter"
         android:importantForAccessibility="no" />
 
-    <!-- 沒有圖的格子（訊號源）：只顯示置中文字 -->
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:textColor="#FFDDDDDD"
-        android:textSize="20sp"
-        android:visibility="gone" />
-
     <TextView
         android:id="@+id/label"
         android:layout_width="match_parent"
