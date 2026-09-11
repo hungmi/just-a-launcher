@@ -29,7 +29,8 @@ die()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 # 有終端機就從 /dev/tty 讀（curl | bash 也能用），沒有就讀 stdin
 readline() {
   REPLY=
-  { read -r -p "$1" REPLY </dev/tty; } 2>/dev/null || read -r -p "$1" REPLY || true
+  { read -r -p "$1" REPLY </dev/tty; } 2>/dev/null && return
+  read -r -p "$1" REPLY || die "沒有輸入（stdin 已結束），中止。"
 }
 ask() {
   readline "$1 [Y/n] "
@@ -131,14 +132,24 @@ pick_tv() {
 connect_tv() {
   case "$SERIAL" in *:*) ;; *) return;; esac   # USB 裝置不用 connect
   say "連線到 $SERIAL"
+  local out state
   while :; do
-    local out
     out=$(adb connect "$SERIAL" 2>&1)
-    # 連上之後 shell 要能通才算（第一次會 failed to authenticate，要在電視按允許）
-    if adb -s "$SERIAL" shell true >/dev/null 2>&1; then note "已連線"; return; fi
-    note "$out"
-    note "電視畫面應該跳出「允許 USB 偵錯嗎？」，請用遙控器選「一律允許」。"
-    ask "按了嗎？按 Enter 重試" || die "已取消。"
+    state=$(adb devices | awk -v s="$SERIAL" '$1==s{print $2}')
+    case "$state" in
+      device)
+        if adb -s "$SERIAL" shell true >/dev/null 2>&1; then note "已連線"; return; fi
+        note "連上了但 shell 不通，重連…"; adb disconnect "$SERIAL" >/dev/null 2>&1;;
+      unauthorized)
+        # 第一次連會這樣（adb connect 會印 failed to authenticate 或 already connected）
+        note "電視畫面應該跳出「允許 USB 偵錯嗎？」，請用遙控器選「一律允許」。";;
+      offline)
+        note "裝置 offline，重連…"; adb disconnect "$SERIAL" >/dev/null 2>&1;;
+      *)
+        note "$out"
+        note "連不上。確認電視有開網路偵錯、跟你在同一個 Wi-Fi、IP 沒打錯。";;
+    esac
+    ask "按 Enter 重試" || die "已取消。"
   done
 }
 reconnect() { case "$SERIAL" in *:*) adb connect "$SERIAL" >/dev/null 2>&1; sleep 1;; esac; }
