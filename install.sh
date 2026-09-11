@@ -51,10 +51,13 @@ check_tools() {
   [ ${#missing[@]} -eq 0 ] && return
   say "缺少：${missing[*]}"
   if [ -n "${TERMUX_VERSION:-}" ] || [ -d /data/data/com.termux ]; then
-    note "Termux 請先執行：pkg install android-tools curl"
+    step "Termux 可以直接裝，要幫你執行 pkg install android-tools curl 嗎？"
+    pkg install -y android-tools curl || die "安裝失敗，請手動執行：pkg install android-tools curl"
+    for c in "${missing[@]}"; do command -v "$c" >/dev/null || die "裝了但還是找不到 $c，請重開 Termux 再試。"; done
+    return
   else
     note "macOS：brew install android-platform-tools   Debian/Ubuntu：sudo apt install adb curl"
-    note "Arch：sudo pacman -S android-tools curl       Windows：請改用 README 手動步驗"
+    note "Arch：sudo pacman -S android-tools curl       Windows：請改用 README 手動步驟"
   fi
   exit 1
 }
