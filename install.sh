@@ -40,7 +40,8 @@ ask() {
 prompt() { readline "$1"; printf '%s' "$REPLY"; }
 step() { ask "$1" || die "已取消。"; }
 
-sh_tv()  { adb -s "$SERIAL" shell "$@" | tr -d '\r'; }
+# </dev/null：adb shell 會把 stdin 轉給遠端，否則會吃掉使用者的回答
+sh_tv()  { adb -s "$SERIAL" shell "$@" </dev/null | tr -d '\r'; }
 current_home() { sh_tv "${HOME_QUERY[@]}" | tail -n 1; }
 
 # ---------- 前置檢查 ----------
@@ -138,7 +139,7 @@ connect_tv() {
     state=$(adb devices | awk -v s="$SERIAL" '$1==s{print $2}')
     case "$state" in
       device)
-        if adb -s "$SERIAL" shell true >/dev/null 2>&1; then note "已連線"; return; fi
+        if adb -s "$SERIAL" shell true >/dev/null 2>&1 </dev/null; then note "已連線"; return; fi
         note "連上了但 shell 不通，重連…"; adb disconnect "$SERIAL" >/dev/null 2>&1;;
       unauthorized)
         # 第一次連會這樣（adb connect 會印 failed to authenticate 或 already connected）
@@ -178,7 +179,7 @@ do_install() {
   local tmp; tmp=$(mktemp -d)
   curl -fL -o "$tmp/just-a-launcher.apk" "$APK_URL" || die "下載失敗。"
   local out
-  out=$(adb -s "$SERIAL" install -r "$tmp/just-a-launcher.apk" 2>&1)
+  out=$(adb -s "$SERIAL" install -r "$tmp/just-a-launcher.apk" 2>&1 </dev/null)
   rm -rf "$tmp"
   case "$out" in
     *Success*) note "安裝成功";;
@@ -227,7 +228,7 @@ do_restore() {
   sh_tv pm enable --user 0 "$LAUNCHERX" 2>/dev/null; reconnect
   sh_tv pm enable --user 0 "$SETUPWRAITH" 2>/dev/null; reconnect
   [ -n "$orig" ] && sh_tv cmd package set-home-activity --user 0 "$orig" >/dev/null
-  adb -s "$SERIAL" uninstall "$PKG" >/dev/null 2>&1; reconnect
+  adb -s "$SERIAL" uninstall "$PKG" >/dev/null 2>&1 </dev/null; reconnect
   local now; now=$(current_home)
   say "現在的首頁：$now"
   case "$now" in *"$PKG"*) die "移除失敗。";; esac
