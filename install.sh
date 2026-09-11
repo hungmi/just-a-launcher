@@ -16,7 +16,7 @@ PKG=tw.hungmi.justalauncher
 HOME_ACT=$PKG/.MainActivity
 LAUNCHERX=com.google.android.apps.tv.launcherx
 SETUPWRAITH=com.google.android.tungsten.setupwraith
-STATE=$HOME/.just-a-launcher-original-home
+STATE=${HOME:-.}/.just-a-launcher-original-home
 HOME_QUERY=(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME)
 
 SERIAL=
@@ -44,6 +44,8 @@ step() { ask "$1" || die "已取消。"; }
 # </dev/null：adb shell 會把 stdin 轉給遠端，否則會吃掉使用者的回答
 sh_tv()  { adb -s "$SERIAL" shell "$@" </dev/null | tr -d '\r'; }
 current_home() { sh_tv "${HOME_QUERY[@]}" | tail -n 1; }
+# adb shell 會把參數拼成字串交給電視的 sh 執行，任何要回灌的值都先確認長得像 套件/Activity
+is_component() { printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+$'; }
 
 # ---------- 前置檢查 ----------
 is_termux() { [ -n "${TERMUX_VERSION:-}" ] || [ -d /data/data/com.termux ]; }
@@ -55,13 +57,14 @@ check_tools() {
   [ ${#missing[@]} -eq 0 ] && return
   say "缺少或壞掉：${missing[*]}"
   if is_termux; then
-    step "Termux 可以直接裝：先升級全部套件（不然版本會對不上、curl 會壞），再裝 android-tools。約 1–2 分鐘，要執行嗎？"
+    step "Termux 可以直接裝：先 apt full-upgrade 升級全部套件（不然版本會對不上、curl 會壞），再裝 android-tools。你改過的設定檔會保留。約 1–2 分鐘，要執行嗎？"
     # 用 apt-get 不用 pkg：pkg upgrade 帶參數時會默默不升級，回傳卻是成功。
-    # noninteractive + force-confnew：不然 dpkg 會停下來問 openssl.cnf 之類的設定檔要不要換
+    # confdef + confold：dpkg 不會停下來問 openssl.cnf 之類的設定檔，且保留使用者改過的版本
     export DEBIAN_FRONTEND=noninteractive
+    local dpkgopt=(-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
     apt-get -q update \
-      && apt-get -q -y -o Dpkg::Options::=--force-confnew full-upgrade \
-      && apt-get -q -y -o Dpkg::Options::=--force-confnew install android-tools curl || die "安裝失敗，請手動執行：pkg upgrade 然後 pkg install android-tools curl"
+      && apt-get -q -y "${dpkgopt[@]}" full-upgrade \
+      && apt-get -q -y "${dpkgopt[@]}" install android-tools curl || die "安裝失敗，請手動執行：pkg upgrade 然後 pkg install android-tools curl"
     for c in adb curl; do command -v "$c" >/dev/null || die "裝了但還是找不到 $c，請重開 Termux 再試。"; done
     curl --version >/dev/null 2>&1 || die "curl 還是跑不起來，請重開 Termux 再試。"
     return
@@ -83,9 +86,9 @@ my_subnet() {
 # 5555 port 有開 → 回傳 0
 probe() {
   if command -v timeout >/dev/null; then
-    timeout 0.4 bash -c "exec 3<>/dev/tcp/$1/5555" 2>/dev/null
+    timeout 0.4 bash -c 'exec 3<>"/dev/tcp/$0/5555"' "$1" 2>/dev/null
   else  # macOS 沒有 timeout
-    bash -c "exec 3<>/dev/tcp/$1/5555" 2>/dev/null & local pid=$!
+    bash -c 'exec 3<>"/dev/tcp/$0/5555"' "$1" 2>/dev/null & local pid=$!
     ( sleep 0.4; kill "$pid" 2>/dev/null ) 2>/dev/null &
     wait "$pid" 2>/dev/null
   fi
@@ -178,13 +181,13 @@ do_install() {
   local before
   before=$(current_home)
   say "目前的首頁：$before"
-  if [ "$before" != "$HOME_ACT" ]; then
+  if [ "$before" != "$HOME_ACT" ] && is_component "$before"; then
     printf '%s\n' "$before" > "$STATE"
     note "已記到 $STATE，還原時會用"
   fi
 
   step "下載並安裝 just-a-launcher？"
-  local tmp; tmp=$(mktemp -d)
+  local tmp; tmp=$(mktemp -d) || die "無法建立暫存目錄。"
   curl -fL --progress-bar -o "$tmp/just-a-launcher.apk" "$APK_URL" || die "下載失敗。"
   local out
   out=$(adb -s "$SERIAL" install -r "$tmp/just-a-launcher.apk" 2>&1 </dev/null)
@@ -231,6 +234,9 @@ do_restore() {
   say "還原原本的首頁並移除 just-a-launcher"
   local orig=
   [ -f "$STATE" ] && orig=$(cat "$STATE")
+  if [ -n "$orig" ] && ! is_component "$orig"; then
+    note "$STATE 內容不像套件名稱，忽略：$orig"; orig=
+  fi
   [ -n "$orig" ] && note "原本的首頁：$orig"
   step "開始還原？"
   sh_tv pm enable --user 0 "$LAUNCHERX" 2>/dev/null; reconnect
