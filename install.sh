@@ -145,8 +145,10 @@ connect_tv() {
         if adb -s "$SERIAL" shell true >/dev/null 2>&1 </dev/null; then note "已連線"; return; fi
         note "連上了但 shell 不通，重連…"; adb disconnect "$SERIAL" >/dev/null 2>&1;;
       unauthorized)
-        # 第一次連會這樣（adb connect 會印 failed to authenticate 或 already connected）
-        note "電視畫面應該跳出「允許 USB 偵錯嗎？」，請用遙控器選「一律允許」。";;
+        # 第一次連會這樣。按了取消的話同一條連線不會再問，所以先斷開，重試時才會重新跳
+        note "電視畫面應該跳出「允許 USB 偵錯嗎？」，請用遙控器選「一律允許」。"
+        note "沒看到或不小心按了取消：按 Enter 重試會重新跳一次。"
+        adb disconnect "$SERIAL" >/dev/null 2>&1;;
       offline)
         note "裝置 offline，重連…"; adb disconnect "$SERIAL" >/dev/null 2>&1;;
       *)
