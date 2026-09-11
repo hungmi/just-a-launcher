@@ -104,9 +104,9 @@ ask_ip() {
   SERIAL=$ip:5555
 }
 pick_tv() {
-  # 1. adb 已經連著一台
-  local devs
-  devs=$(adb devices | awk 'NR>1 && $2=="device"{print $1}')
+  # 1. adb 已經連著一台（adb 可能還沒裝，那就跳過）
+  local devs=
+  command -v adb >/dev/null && devs=$(adb devices 2>/dev/null | awk 'NR>1 && $2=="device"{print $1}')
   if [ "$(printf '%s\n' "$devs" | grep -c .)" -eq 1 ]; then
     SERIAL=$devs
     say "adb 已連著一台裝置，就用它：$SERIAL"
@@ -251,8 +251,8 @@ case "${1:-}" in
   "")        MODE=install;;
   *) echo "用法：bash install.sh [--restore]"; exit 2;;
 esac
+pick_tv       # 先找電視：掃描不需要 adb，找不到就不用白裝一堆東西
 check_tools
-pick_tv
 connect_tv
 check_tv
 if [ "$MODE" = install ]; then do_install; else do_restore; fi
