@@ -42,5 +42,5 @@ jobs:
         run: |
           cp app/build/outputs/apk/release/app-release.apk just-a-launcher.apk
           cp just-a-launcher.apk "just-a-launcher-${GITHUB_REF_NAME}.apk"
-          gh release create "$GITHUB_REF_NAME" just-a-launcher.apk "just-a-launcher-${GITHUB_REF_NAME}.apk" \
+          gh release create "$GITHUB_REF_NAME" just-a-launcher.apk "just-a-launcher-${GITHUB_REF_NAME}.apk" install.sh \
             --title "$GITHUB_REF_NAME" --generate-notes
