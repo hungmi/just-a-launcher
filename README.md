@@ -66,6 +66,7 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
 - **Android 手機 / 平板**：裝 [Termux](https://github.com/termux/termux-app/releases)（GitHub 或 F-Droid 版，
   Play 商店那個已停更），開起來貼上面那行。缺 adb 會問你要不要裝，Enter 就好，約 1–2 分鐘
 - 電視會跳「允許 USB 偵錯嗎？」，用遙控器選「一律允許」。不小心按到取消，回來按 Enter 會再跳一次
+- 升級：再跑一次同一行，`adb install -r` 會原地換新版
 - 還原：`bash install.sh --restore`
 
 ### 手動安裝（Windows，或想知道腳本做了什麼）

@@ -193,7 +193,7 @@ do_install() {
   out=$(adb -s "$SERIAL" install -r "$tmp/just-a-launcher.apk" 2>&1 </dev/null)
   rm -rf "$tmp"
   case "$out" in
-    *Success*) note "安裝成功";;
+    *Success*) note "安裝成功，版本 $(installed_version)";;
     *OLDER_SDK*|*MISSING_FEATURE*) die "這台裝置不支援：$out";;
     *) die "安裝失敗：$out";;
   esac
@@ -222,9 +222,10 @@ do_install() {
   [ "$now" = "$HOME_ACT" ] || die "還是不行，首頁：$now。請到 $REPO/issues 貼上這段輸出。"
   finish
 }
+installed_version() { sh_tv dumpsys package "$PKG" | awk -F= '/versionName=/{print $2; exit}'; }
 finish() {
   sh_tv input keyevent KEYCODE_HOME
-  say "完成。電視現在應該是黑底、一格一格的 app。"
+  say "完成。just-a-launcher $(installed_version) 已是首頁，電視現在應該是黑底、一格一格的 app。"
   note "用遙控器試：D-pad 移動、OK 開 app、HOME 回來。"
   note "要還原：bash install.sh --restore"
 }
