@@ -45,12 +45,7 @@ adb shell dumpsys meminfo <套件> | grep 'TOTAL PSS'
 - 一台電腦，或一支 Android 手機 / 平板（用 Termux）。電視開啟開發人員選項 → 網路偵錯
 - 電腦 / 手機和電視連同一個 Wi-Fi / 區網（訪客網路通常會隔離裝置，不行）
 
-想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。或用 adb：
-
-```
-adb shell getprop ro.build.version.sdk      # ≥ 21
-adb shell pm list features | grep leanback  # 有輸出才是 Android TV
-```
+想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。腳本也會自己檢查，不符會拒絕。
 
 ## 安裝
 
@@ -73,7 +68,7 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
 - 電視會跳「允許 USB 偵錯嗎？」，用遙控器選「一律允許」。不小心按到取消，回來按 Enter 會再跳一次
 - 還原：`bash install.sh --restore`
 
-### 手動安裝
+### 手動安裝（Windows，或想知道腳本做了什麼）
 
 1. 連線
    ```
@@ -115,113 +110,22 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
 
 ## 讓 AI agent 幫你裝
 
-不想自己打指令，把下面整段貼給 Claude Code 之類能跑終端機的 agent。
-它會自己找電視 IP：找得到一台就直接用，找到多台或找不到才問你。
-
-<details>
-<summary>中文 prompt</summary>
+想讓 Claude Code 之類能跑終端機的 agent 代勞，貼給它：
 
 ```
-請幫我把 just-a-launcher（https://github.com/hungmi/just-a-launcher）裝到我的 Android TV 並設為首頁。
-指令你自己執行，每一步用白話說明你在做什麼。
-
-規則
-1. 只能用 adb install、cmd package set-home-activity，以及對下面第 7 步指定的兩個套件
-   pm disable-user。不要 pm uninstall、不要停用其他東西、不要 root。
-2. 先確認 adb 已安裝，沒有就依我的作業系統裝：macOS `brew install android-platform-tools`、
-   Debian/Ubuntu `apt install adb`、Arch `pacman -S android-tools`、Windows 下載 Google platform-tools。
-3. 找電視 IP，照這個順序。確定就直接用，不確定就列選項問我：
-   前提：電腦和電視要在同一個 Wi-Fi / 區網，先提醒我確認（訪客網路會隔離裝置）。
-   a. `adb devices` 已經有裝置 → 直接用。
-   b. 掃區網哪台開著 5555 port（Android TV 的網路偵錯）。Linux/macOS 範例：
-        net=$(ip -4 route get 1 | awk '{print $7}' | cut -d. -f1-3)   # macOS：ipconfig getifaddr en0
-        for i in $(seq 1 254); do (timeout 0.3 bash -c "</dev/tcp/$net.$i/5555" 2>/dev/null && echo $net.$i) & done; wait
-      只找到一台 → 就是它。
-   c. 沒有或多台 → 用 mDNS 列出區網的 Android TV：
-        Linux `avahi-browse -rtp _androidtvremote2._tcp`、macOS `dns-sd -B _androidtvremote2._tcp local.`
-      把裝置名稱和 IP 列給我選。找不到 5555 的話，提醒我在那台電視開啟：
-      設定 → 系統 → 關於 → 版本號連按 7 下 → 開發人員選項 → 網路偵錯（或 USB 偵錯）。
-   d. 都找不到 → 請我到電視「設定 → 網路 → 狀態」看 IP。
-4. 安裝：
-        adb connect <IP>:5555        # 電視會跳「允許偵錯？」，提醒我在電視按允許
-        curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk
-        adb install -r just-a-launcher.apk
-   若出現 INSTALL_FAILED_OLDER_SDK 或 INSTALL_FAILED_MISSING_FEATURE，代表這台不支援，
-   停下來告訴我，不要想辦法繞過。
-5. 記下原本的首頁，最後還原指令要用：
-        adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
-6. 設為首頁，然後確認：
-        adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
-        adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
-   印出 tw.hungmi.justalauncher/.MainActivity → 跳到第 8 步。印出別的 → 第 7 步。
-7. 停用原本的首頁。只在第 5 步清單有 com.google.android.apps.tv.launcherx（Google TV 機型）時做，
-   其他機型停下來問我。兩個都要停，只停第一個 HOME 會變黑畫面。每停一個 adb 會斷線，重新 adb connect：
-        adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
-        adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
-   再跑一次第 6 步的 resolve-activity，必須印出 tw.hungmi.justalauncher/.MainActivity。
-   提醒我：之後要新增 Google 帳號時，先 pm enable --user 0 com.google.android.tungsten.setupwraith，弄完再停。
-8. adb shell input keyevent KEYCODE_HOME，請我看電視：應該是黑底、一格一格的 app。
-   請我用遙控器試 D-pad 移動、OK 開一個 app、HOME 回來。
-9. 最後給我還原指令（有做第 7 步的話，先 pm enable --user 0 那兩個套件，再）：
-        adb shell cmd package set-home-activity --user 0 <第 5 步記下的原本 launcher>
+幫我執行 curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/install.sh && bash install.sh
+每一步用白話解釋你在做什麼，腳本問的問題先問我再回答。
 ```
-
-</details>
-
-<details>
-<summary>English prompt</summary>
-
-```
-Install just-a-launcher (https://github.com/hungmi/just-a-launcher) on my Android TV and make it the home screen.
-Run the commands yourself and explain each step in plain language.
-
-Rules
-1. Only `adb install`, `cmd package set-home-activity`, and `pm disable-user` on the two packages
-   named in step 7. No `pm uninstall`, no disabling anything else, no rooting.
-2. Check that adb is installed; if not, install it for my OS: macOS `brew install android-platform-tools`,
-   Debian/Ubuntu `apt install adb`, Arch `pacman -S android-tools`, Windows: download Google platform-tools.
-3. Find the TV's IP in this order. If it is unambiguous, use it; otherwise list the options and ask me:
-   First remind me that the computer and the TV must be on the same Wi-Fi / LAN (guest networks isolate devices).
-   a. `adb devices` already shows a device -> use it.
-   b. Scan the LAN for hosts with port 5555 open (Android TV network debugging). Linux/macOS example:
-        net=$(ip -4 route get 1 | awk '{print $7}' | cut -d. -f1-3)   # macOS: ipconfig getifaddr en0
-        for i in $(seq 1 254); do (timeout 0.3 bash -c "</dev/tcp/$net.$i/5555" 2>/dev/null && echo $net.$i) & done; wait
-      Exactly one hit -> that is the TV.
-   c. None or several -> list Android TVs on the LAN via mDNS:
-        Linux `avahi-browse -rtp _androidtvremote2._tcp`, macOS `dns-sd -B _androidtvremote2._tcp local.`
-      Show me the device names and IPs to choose from. If nothing had 5555 open, remind me to enable on the TV:
-      Settings -> System -> About -> tap Build number 7 times -> Developer options -> Network debugging (or USB debugging).
-   d. Still nothing -> ask me to read the IP from the TV: Settings -> Network -> Status.
-4. Install:
-        adb connect <IP>:5555        # the TV shows "Allow debugging?" - tell me to accept it on the TV
-        curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk
-        adb install -r just-a-launcher.apk
-   If you see INSTALL_FAILED_OLDER_SDK or INSTALL_FAILED_MISSING_FEATURE the device is not supported.
-   Stop and tell me; do not try to work around it.
-5. Record the current home screen; the undo command at the end needs it:
-        adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
-6. Set the home screen, then verify:
-        adb shell cmd package set-home-activity --user 0 tw.hungmi.justalauncher/.MainActivity
-        adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
-   Prints tw.hungmi.justalauncher/.MainActivity -> skip to step 8. Prints anything else -> step 7.
-7. Disable the original home screen. Only do this if the step 5 list contains
-   com.google.android.apps.tv.launcherx (a Google TV device); on any other device stop and ask me.
-   Both packages are required; disabling only the first leaves HOME on a black screen.
-   adb disconnects after each one; run `adb connect` again:
-        adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
-        adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
-   Re-run the resolve-activity command from step 6; it must now print tw.hungmi.justalauncher/.MainActivity.
-   Remind me: to add a Google account later, first `pm enable --user 0 com.google.android.tungsten.setupwraith`,
-   then disable it again afterwards.
-8. `adb shell input keyevent KEYCODE_HOME` and ask me to look at the TV: a black screen with a grid of app tiles.
-   Have me test D-pad movement, OK to open an app, HOME to come back.
-9. Finish with the undo commands (if step 7 was done: `pm enable --user 0` both packages first, then):
-        adb shell cmd package set-home-activity --user 0 <the original launcher from step 5>
-```
-
-</details>
 
 ## 還原 / 切回原本的首頁
+
+用腳本裝的：
+
+```
+bash install.sh --restore
+```
+
+會啟用兩個套件、設回安裝時記下的首頁、移除 just-a-launcher。手動裝的照下面做：
 
 ```
 adb shell cmd package set-home-activity --user 0 <原本的 launcher>/<activity>
