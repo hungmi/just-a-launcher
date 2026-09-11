@@ -29,11 +29,12 @@ die()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 # 有終端機就從 /dev/tty 讀（curl | bash 也能用），沒有就讀 stdin
 readline() {
   REPLY=
-  { read -r -p "$1" REPLY </dev/tty; } 2>/dev/null && return
-  read -r -p "$1" REPLY || die "沒有輸入（stdin 已結束），中止。"
+  printf '\033[33m▶ %s\033[0m' "$1"
+  { read -r REPLY </dev/tty; } 2>/dev/null && return
+  read -r REPLY || die "沒有輸入（stdin 已結束），中止。"
 }
 ask() {
-  readline "$1 [Y/n] "
+  readline "$1 [Y/n]（直接按 Enter = 是）"
   case "$REPLY" in n|N|no|NO) return 1;; *) return 0;; esac
 }
 # prompt "提示" → 印出使用者輸入
@@ -45,15 +46,19 @@ sh_tv()  { adb -s "$SERIAL" shell "$@" </dev/null | tr -d '\r'; }
 current_home() { sh_tv "${HOME_QUERY[@]}" | tail -n 1; }
 
 # ---------- 前置檢查 ----------
+is_termux() { [ -n "${TERMUX_VERSION:-}" ] || [ -d /data/data/com.termux ]; }
 check_tools() {
   local missing=()
   for c in adb curl; do command -v "$c" >/dev/null || missing+=("$c"); done
+  # Termux 內建 curl 可能跟後來裝的套件版本對不上（CANNOT LINK EXECUTABLE），一起當缺少
+  curl --version >/dev/null 2>&1 || case " ${missing[*]:-} " in *" curl "*) ;; *) missing+=(curl);; esac
   [ ${#missing[@]} -eq 0 ] && return
-  say "缺少：${missing[*]}"
-  if [ -n "${TERMUX_VERSION:-}" ] || [ -d /data/data/com.termux ]; then
-    step "Termux 可以直接裝，要幫你執行 pkg install android-tools curl 嗎？"
-    pkg install -y android-tools curl || die "安裝失敗，請手動執行：pkg install android-tools curl"
-    for c in "${missing[@]}"; do command -v "$c" >/dev/null || die "裝了但還是找不到 $c，請重開 Termux 再試。"; done
+  say "缺少或壞掉：${missing[*]}"
+  if is_termux; then
+    step "Termux 可以直接裝：先 pkg upgrade（避免套件版本對不上），再 pkg install android-tools curl。要執行嗎？"
+    pkg upgrade -y && pkg install -y android-tools curl || die "安裝失敗，請手動執行：pkg upgrade && pkg install android-tools curl"
+    for c in adb curl; do command -v "$c" >/dev/null || die "裝了但還是找不到 $c，請重開 Termux 再試。"; done
+    curl --version >/dev/null 2>&1 || die "curl 還是跑不起來，請重開 Termux 再試。"
     return
   else
     note "macOS：brew install android-platform-tools   Debian/Ubuntu：sudo apt install adb curl"
@@ -85,51 +90,44 @@ scan_lan() {
   for i in $(seq 1 254); do ( probe "$net.$i" && echo "$net.$i" ) & done
   wait
 }
+ask_ip() {
+  say "請到電視看 IP：設定 → 網路與網際網路 → 點目前連的 Wi-Fi → 「IP 位址」"
+  note "手機 / 電腦要跟電視連同一個 Wi-Fi（訪客網路會隔離裝置，不行）"
+  local ip
+  ip=$(prompt "輸入電視 IP（例如 192.168.1.185）： ")
+  [ -z "$ip" ] && die "沒有輸入 IP。"
+  SERIAL=$ip:5555
+}
 pick_tv() {
   # 1. adb 已經連著一台
   local devs
   devs=$(adb devices | awk 'NR>1 && $2=="device"{print $1}')
   if [ "$(printf '%s\n' "$devs" | grep -c .)" -eq 1 ]; then
     SERIAL=$devs
-    say "adb 已連著一台裝置：$SERIAL"
-    ask "就用這台？" && return
-    SERIAL=
+    say "adb 已連著一台裝置，就用它：$SERIAL"
+    return
   fi
 
-  # 2. 請使用者自己看
-  say "找電視的 IP"
-  note "請到電視：設定 → 網路與網際網路 → 點目前的 Wi-Fi → 看「IP 位址」"
-  note "手機 / 電腦要跟電視連同一個 Wi-Fi（訪客網路會隔離裝置，不行）"
-  local ip
-  ip=$(prompt "輸入電視 IP，不知道就直接按 Enter 我幫你掃區網： ")
-  if [ -n "$ip" ]; then SERIAL=$ip:5555; return; fi
-
-  # 3. 掃區網 5555 port
+  # 2. 掃區網 5555 port
   local net
   net=$(my_subnet)
-  [ -z "$net" ] && net=$(prompt "抓不到你的網段，請輸入前三段（例如 192.168.1）： ")
-  [ -z "$net" ] && die "沒有網段，無法掃描。"
-  say "掃 $net.1–254 的 5555 port（約 10 秒）…"
-  local found
+  if [ -z "$net" ]; then note "抓不到你的網段，無法自動掃描。"; ask_ip; return; fi
+  say "掃區網 $net.1–254 找開著網路偵錯的電視（約 10 秒）…"
+  local found n
   found=$(scan_lan "$net" | sort -t. -k4 -n)
-  local n
   n=$(printf '%s\n' "$found" | grep -c .)
-  if [ "$n" -eq 0 ]; then
-    say "找不到有開網路偵錯的裝置"
-    note "電視：設定 → 系統 → 關於 → 「Android TV OS 版本」連按 7 下 → 回上一頁 → 開發人員選項 → 開啟「網路偵錯」（或 USB 偵錯）"
-    note "開好後再執行一次這個腳本。"
-    exit 1
-  elif [ "$n" -eq 1 ]; then
+  if [ "$n" -eq 1 ]; then
     SERIAL=$found:5555
     say "找到一台：$found"
+  elif [ "$n" -eq 0 ]; then
+    say "找不到有開網路偵錯的裝置"
+    note "電視：設定 → 系統 → 關於 → 「Android TV OS 版本」連按 7 下 → 回上一頁 → 開發人員選項 → 開啟「網路偵錯」（或 USB 偵錯）"
+    note "如果確定已經開了，可以手動輸入 IP。"
+    ask "要手動輸入 IP 嗎？" || die "開好網路偵錯後再執行一次這個腳本。"
+    ask_ip
   else
-    say "找到多台，哪一台是電視？"
-    local i=1 x
-    for x in $found; do note "$i) $x"; i=$((i+1)); done
-    local c
-    c=$(prompt "輸入編號： ")
-    SERIAL=$(printf '%s\n' "$found" | sed -n "${c}p"):5555
-    [ "$SERIAL" = ":5555" ] && die "編號不對。"
+    say "找到多台：$(printf '%s ' $found)"
+    ask_ip
   fi
 }
 
