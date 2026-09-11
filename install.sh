@@ -56,9 +56,12 @@ check_tools() {
   say "缺少或壞掉：${missing[*]}"
   if is_termux; then
     step "Termux 可以直接裝：先 pkg upgrade（避免套件版本對不上），再 pkg install android-tools curl。要執行嗎？"
+    # 用 apt-get 不用 pkg：pkg upgrade 帶參數時會默默不升級，回傳卻是成功。
     # noninteractive + force-confnew：不然 dpkg 會停下來問 openssl.cnf 之類的設定檔要不要換
-    DEBIAN_FRONTEND=noninteractive pkg upgrade -y -o Dpkg::Options::=--force-confnew \
-      && DEBIAN_FRONTEND=noninteractive pkg install -y android-tools curl || die "安裝失敗，請手動執行：pkg upgrade && pkg install android-tools curl"
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update \
+      && apt-get -y -o Dpkg::Options::=--force-confnew full-upgrade \
+      && apt-get -y -o Dpkg::Options::=--force-confnew install android-tools curl || die "安裝失敗，請手動執行：pkg upgrade 然後 pkg install android-tools curl"
     for c in adb curl; do command -v "$c" >/dev/null || die "裝了但還是找不到 $c，請重開 Termux 再試。"; done
     curl --version >/dev/null 2>&1 || die "curl 還是跑不起來，請重開 Termux 再試。"
     return
