@@ -42,8 +42,8 @@ adb shell dumpsys meminfo <套件> | grep 'TOTAL PSS'
 ## 需求
 
 - Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
-- 電腦上有 adb，電視開啟開發人員選項 → USB / 網路偵錯
-- 電腦和電視連同一個 Wi-Fi / 區網（訪客網路通常會隔離裝置，不行）
+- 一台電腦，或一支 Android 手機 / 平板（用 Termux）。電視開啟開發人員選項 → 網路偵錯
+- 電腦 / 手機和電視連同一個 Wi-Fi / 區網（訪客網路通常會隔離裝置，不行）
 
 想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。或用 adb：
 
@@ -57,6 +57,24 @@ adb shell pm list features | grep leanback  # 有輸出才是 Android TV
 APK 在 [Releases](https://github.com/hungmi/just-a-launcher/releases/latest)，固定網址
 `https://github.com/hungmi/just-a-launcher/releases/latest/download/just-a-launcher.apk`。
 
+### 用腳本裝（電腦或 Android 手機）
+
+`install.sh` 會自己找電視、連線、安裝、設為首頁。每一步先問你，直接按 Enter 就是「是」。
+只做三件事：`adb install`、`set-home-activity`、Google TV 機型停用 launcherx 與 setupwraith，
+不會移除系統 app、不 root。
+
+```
+curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/install.sh && bash install.sh
+```
+
+- **電腦**（macOS / Linux）：要先有 adb 和 curl，缺的話腳本會告訴你怎麼裝。Windows 沒有 bash，走下面手動步驟
+- **Android 手機 / 平板**：裝 [Termux](https://github.com/termux/termux-app/releases)（GitHub 或 F-Droid 版，
+  Play 商店那個已停更），開起來貼上面那行。缺 adb 會問你要不要裝，Enter 就好，約 1–2 分鐘
+- 電視會跳「允許 USB 偵錯嗎？」，用遙控器選「一律允許」。不小心按到取消，回來按 Enter 會再跳一次
+- 還原：`bash install.sh --restore`
+
+### 手動安裝
+
 1. 連線
    ```
    adb connect <電視 IP>
@@ -65,6 +83,9 @@ APK 在 [Releases](https://github.com/hungmi/just-a-launcher/releases/latest)，
    ```
    adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME
    ```
+   會列出好幾個，看 `priority=` 數字最大的那個才是現在的首頁。Google TV 機型是
+   `com.google.android.apps.tv.launcherx/.home.HomeActivity`（priority=2）；`setupwraith` 是設定精靈、
+   `FallbackHome` 是系統備用，都不是。
 3. 安裝、設為首頁。電視沒有「選預設首頁」的 UI，一定要用第二行那個指令
    ```
    adb install -r just-a-launcher.apk
