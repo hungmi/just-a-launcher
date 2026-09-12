@@ -106,6 +106,23 @@ ask_ip() {
   [ -z "$ip" ] && die "沒有輸入 IP。"
   SERIAL=$ip:5555
 }
+# Android 11+ 有些電視只有「無線偵錯」（要配對碼），沒有「網路偵錯」。
+# port 是隨機的、掃不到，只能請使用者照電視畫面打。配對過的電視之後不會再跳「允許 USB 偵錯」
+pair_tv() {
+  check_tools   # 配對要用 adb，先確定有裝
+  say "電視：開發人員選項 → 無線偵錯 → 開啟 → 點「使用配對碼配對裝置」，會跳出一個視窗"
+  local addr code out
+  addr=$(prompt "視窗裡的「IP 位址和連接埠」（例如 192.168.1.185:37123）： ")
+  code=$(prompt "視窗裡的 6 位數配對碼： ")
+  { [ -z "$addr" ] || [ -z "$code" ]; } && die "沒有輸入。"
+  out=$(adb pair "$addr" "$code" 2>&1 </dev/null)
+  case "$out" in *Successfully*) note "配對成功";; *) die "配對失敗：$out";; esac
+  say "視窗會自己關掉。回到「無線偵錯」頁面，上面也有一組「IP 位址和連接埠」，數字跟剛才不一樣"
+  local port
+  port=$(prompt "「無線偵錯」頁面上冒號後面的數字（例如 41235）： ")
+  [ -z "$port" ] && die "沒有輸入。"
+  case "$port" in *:*) SERIAL=$port;; *) SERIAL=${addr%:*}:$port;; esac
+}
 pick_tv() {
   # 1. adb 已經連著一台（adb 可能還沒裝，那就跳過）
   local devs=
@@ -129,10 +146,11 @@ pick_tv() {
     say "找到一台：$found"
   elif [ "$n" -eq 0 ]; then
     say "找不到有開網路偵錯的裝置"
-    note "電視：設定 → 系統 → 關於 → 「Android TV OS 版本」連按 7 下 → 回上一頁 → 開發人員選項 → 開啟「網路偵錯」（或 USB 偵錯）"
-    note "如果確定已經開了，可以手動輸入 IP。"
-    ask "要手動輸入 IP 嗎？" || die "開好網路偵錯後再執行一次這個腳本。"
-    ask_ip
+    note "電視：設定 → 系統 → 關於 → 「Android TV OS 版本」連按 7 下 → 回上一頁 → 開發人員選項，看裡面是哪一種："
+    note "  1 = 有「網路偵錯」：開啟它，然後在這裡手動輸入電視 IP"
+    note "  2 = 只有「無線偵錯」（連線要配對碼）：我帶你配對"
+    readline "選 1 或 2（直接按 Enter = 離開，開好再執行一次）： "
+    case "$REPLY" in 1) ask_ip;; 2) pair_tv;; *) die "開好偵錯後再執行一次這個腳本。";; esac
   else
     say "找到多台：$(printf '%s ' $found)"
     ask_ip

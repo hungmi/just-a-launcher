@@ -42,7 +42,8 @@ adb shell dumpsys meminfo <套件> | grep 'TOTAL PSS'
 ## 需求
 
 - Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
-- 一台電腦，或一支 Android 手機 / 平板（用 Termux）。電視開啟開發人員選項 → 網路偵錯
+- 一台電腦，或一支 Android 手機 / 平板（用 Termux）。電視開啟開發人員選項 → 「網路偵錯」；
+  只有「無線偵錯」的電視（Android 11+ 部分機型）也可以，腳本會帶你用配對碼配對
 - 電腦 / 手機和電視連同一個 Wi-Fi / 區網（訪客網路通常會隔離裝置，不行）
 
 想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。腳本也會自己檢查，不符會拒絕。
@@ -66,13 +67,17 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
 - **Android 手機 / 平板**：裝 [Termux](https://github.com/termux/termux-app/releases)（GitHub 或 F-Droid 版，
   Play 商店那個已停更），開起來貼上面那行。缺 adb 會問你要不要裝，Enter 就好，約 1–2 分鐘
 - 電視會跳「允許 USB 偵錯嗎？」，用遙控器選「一律允許」。不小心按到取消，回來按 Enter 會再跳一次
+- 電視只有「無線偵錯」、沒有「網路偵錯」：腳本掃不到電視時選 2，照電視畫面打三組數字（配對視窗的 IP:port、
+  6 位數配對碼、無線偵錯頁面的 port）。port 每次重開無線偵錯都會變，所以升級時要重配一次
 - 升級：再跑一次同一行，`adb install -r` 會原地換新版
 - 還原：`bash install.sh --restore`
 
 ### 手動安裝（Windows，或想知道腳本做了什麼）
 
-1. 連線
+1. 連線。只有「無線偵錯」的電視要先配對：點「使用配對碼配對裝置」，用視窗上的 IP:port 和配對碼跑第一行，
+   再用無線偵錯頁面上的 IP:port（另一個 port）connect
    ```
+   adb pair <電視 IP>:<配對 port> <配對碼>     # 只有無線偵錯的電視才需要
    adb connect <電視 IP>
    ```
 2. 記下原本的首頁，還原要用
