@@ -29,7 +29,7 @@ die()  { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 # 有終端機就從 /dev/tty 讀（curl | bash 也能用），沒有就讀 stdin
 readline() {
   REPLY=
-  printf '\033[33m▶ %s\033[0m' "$1"
+  printf '\033[33m▶ %s\033[0m' "$1" >&2   # 提示印到 stderr，prompt() 的 $(...) 才不會把提示一起接走
   { read -r REPLY </dev/tty; } 2>/dev/null && return
   read -r REPLY || die "沒有輸入（stdin 已結束），中止。"
 }
