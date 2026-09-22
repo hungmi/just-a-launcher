@@ -109,20 +109,35 @@ ask_ip() {
   [ -z "$ip" ] && die "沒有輸入 IP。"
   case "$ip" in *:*) SERIAL=$ip;; *) SERIAL=$ip:$DEFAULT_PORT;; esac
 }
+# is_ipport "1.2.3.4:5555"：IP 四段各 0–255、port 1–65535 才回傳 0。擋掉 192.168.1.1180 這類打錯
+is_ipport() {
+  case "$1" in *:*) ;; *) return 1;; esac
+  local ip=${1%:*} port=${1##*:} o
+  case "$port" in ''|*[!0-9]*) return 1;; esac
+  [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || return 1
+  local IFS=.; set -- $ip
+  [ $# -eq 4 ] || return 1
+  for o; do case "$o" in ''|*[!0-9]*) return 1;; esac; [ "$o" -le 255 ] || return 1; done
+}
 # Android 11+ 有些電視只有「無線偵錯」（要配對碼），沒有「網路偵錯」。
-# port 是隨機的、掃不到，只能請使用者照電視畫面打。配對過的電視之後不會再跳「允許 USB 偵錯」
+# port 是隨機的、掃不到，只能請使用者照電視畫面打。配對一次就好，之後只要 connect；配對過的電視也不會再跳「允許 USB 偵錯」
 pair_tv() {
   check_tools   # 配對要用 adb，先確定有裝
   say "電視：開發人員選項 → 無線偵錯 → 開啟 → 點「使用配對碼配對裝置」，會跳出一個視窗"
   local addr code out
-  addr=$(prompt "視窗裡的「IP 位址和連接埠」（例如 192.168.1.185:37123）： ")
+  while :; do
+    addr=$(prompt "視窗裡的「IP 位址和通訊埠」（例如 192.168.1.185:37123）： ")
+    [ -z "$addr" ] && die "沒有輸入。"
+    is_ipport "$addr" && break
+    note "格式要是 IP:port，IP 四段各 0–255，例如 192.168.1.185:37123"
+  done
   code=$(prompt "視窗裡的 6 位數配對碼： ")
-  { [ -z "$addr" ] || [ -z "$code" ]; } && die "沒有輸入。"
+  [ -z "$code" ] && die "沒有輸入。"
   out=$(adb pair "$addr" "$code" 2>&1 </dev/null)
   case "$out" in *Successfully*) note "配對成功";; *) die "配對失敗：$out";; esac
-  say "視窗會自己關掉。回到「無線偵錯」頁面，上面也有一組「IP 位址和連接埠」，數字跟剛才不一樣"
+  say "按「返回」關掉視窗（有些機型會自己關）。「無線偵錯」頁面裡也有一欄「IP 位址和通訊埠」，port 跟剛才不一樣"
   local port
-  port=$(prompt "「無線偵錯」頁面上冒號後面的數字（例如 41235）： ")
+  port=$(prompt "「無線偵錯」頁面「IP 位址和通訊埠」冒號後面的數字（例如 41235）： ")
   [ -z "$port" ] && die "沒有輸入。"
   case "$port" in *:*) SERIAL=$port;; *) SERIAL=${addr%:*}:$port;; esac
 }
