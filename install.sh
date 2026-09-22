@@ -20,6 +20,7 @@ STATE=${HOME:-.}/.just-a-launcher-original-home
 HOME_QUERY=(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME)
 
 SERIAL=
+PICK=             # pick_from_list 的結果：選到的編號，按 n 是 0
 DEFAULT_PORT=5555   # Android TV「網路偵錯」的固定 port；「無線偵錯」的 port 是隨機的，走 pair_tv
 
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
@@ -125,38 +126,65 @@ pair_tv() {
   [ -z "$port" ] && die "沒有輸入。"
   case "$port" in *:*) SERIAL=$port;; *) SERIAL=${addr%:*}:$port;; esac
 }
+# pick_from_list "標題" 項目...：印編號清單讓使用者選。PICK = 選到的編號（從 1 起），按 n 是 0
+pick_from_list() {
+  local title=$1; shift
+  local n=$# i
+  say "$title"
+  for i in $(seq 1 "$n"); do note "$i) ${!i}"; done
+  while :; do
+    readline "Enter = 1，打編號，n = 都不是： "
+    case "$REPLY" in
+      "")  PICK=1; return;;
+      n|N) PICK=0; return;;
+      *[!0-9]*) ;;
+      *) if [ "$REPLY" -ge 1 ] && [ "$REPLY" -le "$n" ]; then PICK=$REPLY; return; fi;;
+    esac
+    note "請打 1–$n 或 n"
+  done
+}
+# 3. 手動：自己打 IP，或帶著配對
+choose_manually() {
+  note "電視：設定 → 系統 → 關於 → 「Android TV OS 版本」連按 7 下 → 回上一頁 → 開發人員選項，看裡面是哪一種："
+  note "  1 = 有「網路偵錯」的電視，或已配對過的無線偵錯電視：手動輸入 IP（無線偵錯要寫 IP:port）"
+  note "  2 = 只有「無線偵錯」、還沒配對過：我帶你配對"
+  readline "選 1 或 2（直接按 Enter = 離開，開好再執行一次）： "
+  case "$REPLY" in 1) ask_ip;; 2) pair_tv;; *) die "開好偵錯後再執行一次這個腳本。";; esac
+}
+# 三關：adb 已連著的 → 掃區網預設 port → 手動。每關列清單，按 n 進下一關
 pick_tv() {
-  # 1. adb 已經連著一台（adb 可能還沒裝，那就跳過）
-  local devs=
-  command -v adb >/dev/null && devs=$(adb devices 2>/dev/null | awk 'NR>1 && $2=="device"{print $1}')
-  if [ "$(printf '%s\n' "$devs" | grep -c .)" -eq 1 ]; then
-    SERIAL=$devs
-    say "adb 已連著一台裝置，就用它：$SERIAL"
-    return
+  # 1. adb 已連著的裝置（adb 可能還沒裝，那就跳過）
+  local s model serials=() labels=()
+  if command -v adb >/dev/null; then
+    for s in $(adb devices 2>/dev/null | awk 'NR>1 && $2=="device"{print $1}'); do
+      model=$(adb -s "$s" shell getprop ro.product.model 2>/dev/null </dev/null | tr -d '\r')
+      serials+=("$s"); labels+=("$s  ${model:-?}")
+    done
+    if [ ${#serials[@]} -gt 0 ]; then
+      pick_from_list "adb 已連著的裝置：" "${labels[@]}"
+      if [ "$PICK" -gt 0 ]; then SERIAL=${serials[PICK-1]}; return; fi
+    fi
   fi
 
-  # 2. 掃區網 5555 port
-  local net
+  # 2. 掃區網找開著預設 port 的電視
+  local net found ips
   net=$(my_subnet)
-  if [ -z "$net" ]; then note "抓不到你的網段，無法自動掃描。"; ask_ip; return; fi
-  say "掃區網 $net.1–254 找開著網路偵錯的電視（約 10 秒）…"
-  local found n
-  found=$(scan_lan "$net" "$DEFAULT_PORT" | sort -t. -k4 -n)
-  n=$(printf '%s\n' "$found" | grep -c .)
-  if [ "$n" -eq 1 ]; then
-    SERIAL=$found:$DEFAULT_PORT
-    say "找到一台：$found"
-  elif [ "$n" -eq 0 ]; then
-    say "找不到有開網路偵錯的裝置"
-    note "電視：設定 → 系統 → 關於 → 「Android TV OS 版本」連按 7 下 → 回上一頁 → 開發人員選項，看裡面是哪一種："
-    note "  1 = 有「網路偵錯」：開啟它，然後在這裡手動輸入電視 IP"
-    note "  2 = 只有「無線偵錯」（連線要配對碼）：我帶你配對"
-    readline "選 1 或 2（直接按 Enter = 離開，開好再執行一次）： "
-    case "$REPLY" in 1) ask_ip;; 2) pair_tv;; *) die "開好偵錯後再執行一次這個腳本。";; esac
+  if [ -z "$net" ]; then
+    note "抓不到你的網段，無法自動掃描。"
   else
-    say "找到多台：$(printf '%s ' $found)"
-    ask_ip
+    say "掃區網 $net.1–254 找開著網路偵錯的電視（約 10 秒）…"
+    found=$(scan_lan "$net" "$DEFAULT_PORT" | sort -t. -k4 -n)
+    if [ -n "$found" ]; then
+      ips=($found)
+      pick_from_list "掃到開著網路偵錯的裝置：" "${ips[@]}"
+      if [ "$PICK" -gt 0 ]; then SERIAL=${ips[PICK-1]}:$DEFAULT_PORT; return; fi
+    else
+      say "找不到有開網路偵錯的裝置"
+    fi
   fi
+
+  # 3. 手動
+  choose_manually
 }
 
 connect_tv() {

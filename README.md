@@ -67,8 +67,10 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
 - **Android 手機 / 平板**：裝 [Termux](https://github.com/termux/termux-app/releases)（GitHub 或 F-Droid 版，
   Play 商店那個已停更），開起來貼上面那行。缺 adb 會問你要不要裝，Enter 就好，約 1–2 分鐘
 - 電視會跳「允許 USB 偵錯嗎？」，用遙控器選「一律允許」。不小心按到取消，回來按 Enter 會再跳一次
-- 電視只有「無線偵錯」、沒有「網路偵錯」：腳本掃不到電視時選 2，照電視畫面打三組數字（配對視窗的 IP:port、
-  6 位數配對碼、無線偵錯頁面的 port）。port 每次重開無線偵錯都會變，所以升級時要重配一次
+- 腳本會列出 adb 已連著的裝置和區網掃到的電視：Enter = 第 1 台，打編號選別台，都不是就按 n 改手動輸入 IP 或配對
+- 電視只有「無線偵錯」、沒有「網路偵錯」（Chromecast、Google TV Streamer 等）：清單裡沒有它就按 n → 選 2，
+  照電視畫面打三組數字（配對視窗的 IP:port、6 位數配對碼、無線偵錯頁面的 port）。配對只要一次；port 每次重開
+  無線偵錯都會變，之後升級或還原時按 n → 選 1，打無線偵錯頁面上的 IP:port 就好
 - 升級：再跑一次同一行，`adb install -r` 會原地換新版
 - 還原：`bash install.sh --restore`
 
