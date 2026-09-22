@@ -36,7 +36,7 @@ readline() {
   read -r REPLY || die "沒有輸入（stdin 已結束），中止。"
 }
 ask() {
-  readline "$1 [Y/n]（直接按 Enter = 是）"
+  readline "$1 [Y/n]（直接按 Enter = Y）"
   case "$REPLY" in n|N|no|NO) return 1;; *) return 0;; esac
 }
 # prompt "提示" → 印出使用者輸入
