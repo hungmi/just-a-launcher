@@ -20,6 +20,7 @@ STATE=${HOME:-.}/.just-a-launcher-original-home
 HOME_QUERY=(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME)
 
 SERIAL=
+DEFAULT_PORT=5555   # Android TV「網路偵錯」的固定 port；「無線偵錯」的 port 是隨機的，走 pair_tv
 
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 note() { printf '   %s\n' "$*"; }
@@ -83,28 +84,29 @@ my_subnet() {
   [ -z "$ip" ] && command -v ipconfig >/dev/null && ip=$(ipconfig getifaddr en0 2>/dev/null)
   [ -n "$ip" ] && printf '%s' "${ip%.*}"
 }
-# 5555 port 有開 → 回傳 0
+# probe IP PORT：該 IP 的 PORT 有開 → 回傳 0
 probe() {
   if command -v timeout >/dev/null; then
-    timeout 0.4 bash -c 'exec 3<>"/dev/tcp/$0/5555"' "$1" 2>/dev/null
+    timeout 0.4 bash -c 'exec 3<>"/dev/tcp/$0/$1"' "$1" "$2" 2>/dev/null
   else  # macOS 沒有 timeout
-    bash -c 'exec 3<>"/dev/tcp/$0/5555"' "$1" 2>/dev/null & local pid=$!
+    bash -c 'exec 3<>"/dev/tcp/$0/$1"' "$1" "$2" 2>/dev/null & local pid=$!
     ( sleep 0.4; kill "$pid" 2>/dev/null ) 2>/dev/null &
     wait "$pid" 2>/dev/null
   fi
 }
+# scan_lan NET PORT：印出 NET.1–254 裡 PORT 有開的 IP
 scan_lan() {
-  local net=$1 i
-  for i in $(seq 1 254); do ( probe "$net.$i" && echo "$net.$i" ) & done
+  local net=$1 port=$2 i
+  for i in $(seq 1 254); do ( probe "$net.$i" "$port" && echo "$net.$i" ) & done
   wait
 }
 ask_ip() {
   say "請到電視看 IP：設定 → 網路與網際網路 → 點目前連的 Wi-Fi → 「IP 位址」"
   note "手機 / 電腦要跟電視連同一個 Wi-Fi（訪客網路會隔離裝置，不行）"
   local ip
-  ip=$(prompt "輸入電視 IP（例如 192.168.1.185）： ")
+  ip=$(prompt "輸入電視 IP（例如 192.168.1.185；無線偵錯的電視要帶 port，例如 192.168.1.185:41235）： ")
   [ -z "$ip" ] && die "沒有輸入 IP。"
-  SERIAL=$ip:5555
+  case "$ip" in *:*) SERIAL=$ip;; *) SERIAL=$ip:$DEFAULT_PORT;; esac
 }
 # Android 11+ 有些電視只有「無線偵錯」（要配對碼），沒有「網路偵錯」。
 # port 是隨機的、掃不到，只能請使用者照電視畫面打。配對過的電視之後不會再跳「允許 USB 偵錯」
@@ -139,10 +141,10 @@ pick_tv() {
   if [ -z "$net" ]; then note "抓不到你的網段，無法自動掃描。"; ask_ip; return; fi
   say "掃區網 $net.1–254 找開著網路偵錯的電視（約 10 秒）…"
   local found n
-  found=$(scan_lan "$net" | sort -t. -k4 -n)
+  found=$(scan_lan "$net" "$DEFAULT_PORT" | sort -t. -k4 -n)
   n=$(printf '%s\n' "$found" | grep -c .)
   if [ "$n" -eq 1 ]; then
-    SERIAL=$found:5555
+    SERIAL=$found:$DEFAULT_PORT
     say "找到一台：$found"
   elif [ "$n" -eq 0 ]; then
     say "找不到有開網路偵錯的裝置"

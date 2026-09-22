@@ -77,8 +77,8 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
 1. 連線。只有「無線偵錯」的電視要先配對：點「使用配對碼配對裝置」，用視窗上的 IP:port 和配對碼跑第一行，
    再用無線偵錯頁面上的 IP:port（另一個 port）connect
    ```
-   adb pair <電視 IP>:<配對 port> <配對碼>     # 只有無線偵錯的電視才需要
-   adb connect <電視 IP>
+   adb pair <電視 IP>:<配對 port> <配對碼>     # 只有無線偵錯的電視才需要，配對一次就好
+   adb connect <電視 IP>                        # 無線偵錯的電視要帶 port：adb connect <電視 IP>:<無線偵錯 port>
    ```
 2. 記下原本的首頁，還原要用
    ```
@@ -100,7 +100,7 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
    印出別的 → 繼續。Google TV 機型（BenQ GV01、小米盒子 S 2 代、Chromecast with Google TV…）
    一定會印 `com.google.android.apps.tv.launcherx/...`，set-home-activity 對它沒用。
 5. 停用原本的首頁。**兩個都要停**：只停第一個，HOME 會被設定精靈（setupwraith）攔成黑畫面，
-   看起來像遙控器壞了。每停一個 adb 會斷線，重連
+   看起來像遙控器壞了。每停一個 adb 會斷線，重連（無線偵錯的電視 connect 要帶 port）
    ```
    adb shell pm disable-user --user 0 com.google.android.apps.tv.launcherx
    adb connect <電視 IP>
@@ -139,7 +139,7 @@ adb shell cmd package set-home-activity --user 0 <原本的 launcher>/<activity>
 
 原本的 launcher 用這個查：`adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME`。
 
-安裝時有做第 5 步（停用兩個套件）的話，先開回來再設：
+安裝時有做第 5 步（停用兩個套件）的話，先開回來再設（無線偵錯的電視 connect 要帶 port）：
 
 ```
 adb shell pm enable --user 0 com.google.android.apps.tv.launcherx
