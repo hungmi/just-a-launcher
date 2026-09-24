@@ -1,17 +1,15 @@
 # just-a-launcher
 
-最小 Android TV launcher：一個 GridView 列出所有 TV app（LEANBACK_LAUNCHER），沒有動畫、桌布、
-推薦列、常駐服務。記憶體約 39MB（Google TV 首頁 183MB、Projectivy 78MB）。
+**最小的 Android TV 首頁：只列出 app，閒置 0% CPU、39MB 記憶體，沒有廣告。**
 
+一個 GridView 列出所有 TV app（LEANBACK_LAUNCHER），沒有動畫、桌布、推薦列、常駐服務。
 原本是給 BenQ GV01 投影機（Android TV 14、2GB RAM）做的，任何 Android TV / Google TV 都能用。
 
 ![just-a-launcher 首頁](docs/screenshot.png)
 
-## 為什麼
+## 跟其他首頁比
 
-測試機：BenQ GV01 投影機（MediaTek MT9632，4 核 A53 1.55GHz，2GB RAM，Android TV 14）。
-先清掉背景 app、按 HOME、焦點移到 app 格子，遙控器不碰，等 1 分鐘後連量 5 個 60 秒取平均。
-Google TV 帳戶的「自動播放影片」是關的（預設開）：
+BenQ GV01 投影機（MediaTek MT9632，4 核 A53 1.55GHz，2GB RAM，Android TV 14）閒置 5 分鐘平均：
 
 | 閒置 | Google TV 首頁 | Google TV 僅限應用程式模式 | Projectivy Launcher* | just-a-launcher |
 |---|---|---|---|---|
@@ -22,41 +20,16 @@ Google TV 帳戶的「自動播放影片」是關的（預設開）：
 | 每秒重畫 | 60 | 60 | 0 | 0 |
 | 廣告 | 有 | 頂部整頁輪播還在 | 無 | 無 |
 
-\* 已在 Projectivy 設定中關掉動態桌布和聚焦動畫；預設設定下每秒重畫 60 次。關掉後畫面不重畫，
-但主執行緒每秒仍被叫醒 80 次，所以還有 6% CPU。
+\* 已在 Projectivy 設定中關掉動態桌布和聚焦動畫；預設設定下每秒重畫 60 次。
 
-全機的 12% 是投影機自己的背景程式（ueventd、kworker 等），換哪個首頁都省不掉。
-
-Google TV 首頁閒置時每秒重畫 60 次，也就是螢幕每次更新都重畫，焦點移到哪都一樣。首頁加畫面合成
-佔掉四分之三核，整台機器閒置就有近四成在忙。遙控器按鍵、影片解碼都跟它搶，這是「慢」的主因。
-「僅限應用程式模式」（設定 → 帳戶和設定檔 → 帳戶）拿掉推薦列和預覽影片，但記憶體沒有穩定變少
-（剛啟動 190MB、從一般模式切過去 175MB），頂部輪播廣告還在，焦點在 app 格子時光圈照樣每秒重畫 60 次，
-CPU 幾乎沒變。
-
-RAM 的影響是非線性的。2GB 的裝置扣掉系統後可用的只有三、四百 MB，首頁少佔 140MB，
-Netflix、YouTube 就能同時留在記憶體，切換 1 秒而不是被殺掉後冷啟動 10 秒。
-同樣的 140MB 在 8GB 的電視上幾乎沒感覺。
-
-量法：
-
-```
-adb shell am kill-all                                                # 先清背景 app
-adb shell top -b -d 60 -n 2 -m 10                                    # 看第二段：程序 % 佔一核，第一行總量（核心數 × 100%）扣掉 idle 是全機
-adb shell dumpsys gfxinfo <套件> | grep -E '^Uptime|Total frames'     # 量兩次：幀差 ÷ Uptime 差（毫秒）× 1000 = 每秒重畫
-adb shell dumpsys meminfo --package <套件> | grep 'TOTAL PSS'         # --package 才含副程序，多行要加總；TOTAL PSS 已含 swap
-```
-
-不要用 `dumpsys cpuinfo`：它每 5 分鐘才更新一次，連查會拿到同一組舊數字，還可能把你按遙控器那幾秒算進去。
-完整流程、切換首頁的指令和量測腳本在 [bench/](bench/README.md)。
+全機的 12% 是投影機自己的背景程式，換哪個首頁都省不掉。為什麼 Google TV 首頁慢、怎麼量，見[量測細節](#量測細節)。
 
 ## 需求
 
-- Android TV / Google TV，Android 5.0 以上。不符的裝置（手機、平板、太舊的電視）安裝時會直接被拒
-- 一台電腦，或一支 Android 手機 / 平板（用 Termux）。電視開啟開發人員選項 → 「網路偵錯」；
-  只有「無線偵錯」的電視（Android 11+ 部分機型）也可以，腳本會帶你用配對碼配對
+- Android TV / Google TV，Android 5.0 以上（設定 → 關於 → Android 版本）。不符的裝置安裝時會直接被拒
+- 一台電腦，或一支 Android 手機 / 平板（用 Termux）
+- 電視開啟開發人員選項 →「網路偵錯」；只有「無線偵錯」的電視（Android 11+ 部分機型）也可以，腳本會帶你用配對碼配對
 - 電腦 / 手機和電視連同一個 Wi-Fi / 區網（訪客網路通常會隔離裝置，不行）
-
-想先確認再裝：電視「設定 → 關於 → Android 版本」5.0 以上即可。腳本也會自己檢查，不符會拒絕。
 
 ## 安裝
 
@@ -65,13 +38,13 @@ APK 在 [Releases](https://github.com/hungmi/just-a-launcher/releases/latest)，
 
 ### 用腳本裝（電腦或 Android 手機）
 
-`install.sh` 會自己找電視、連線、安裝、設為首頁。每一步先問你，直接按 Enter 就是「是」。
-只做三件事：`adb install`、`set-home-activity`、Google TV 機型停用 launcherx 與 setupwraith，
-不會移除系統 app、不 root。
-
 ```
 curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/install.sh && bash install.sh
 ```
+
+`install.sh` 會自己找電視、連線、安裝、設為首頁。每一步先問你，直接按 Enter 就是「是」。
+只做三件事：`adb install`、`set-home-activity`、Google TV 機型停用 launcherx 與 setupwraith，
+不會移除系統 app、不 root。
 
 - **電腦**（macOS / Linux）：要先有 adb 和 curl，缺的話腳本會告訴你怎麼裝。Windows 沒有 bash，走下面手動步驟
 - **Android 手機 / 平板**：裝 [Termux](https://github.com/termux/termux-app/releases)（GitHub 或 F-Droid 版，
@@ -83,6 +56,15 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
   無線偵錯都會變，之後升級或還原時按 n → 選 1，打無線偵錯頁面上的 IP:port 就好
 - 升級：再跑一次同一行，`adb install -r` 會原地換新版
 - 還原：`bash install.sh --restore`
+
+### 讓 AI agent 幫你裝
+
+想讓 Claude Code 之類能跑終端機的 agent 代勞，貼給它：
+
+```
+幫我執行 curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/install.sh && bash install.sh
+每一步用白話解釋你在做什麼，腳本問的問題先問我再回答。
+```
 
 ### 手動安裝（Windows，或想知道腳本做了什麼）
 
@@ -119,21 +101,30 @@ curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/inst
    adb shell pm disable-user --user 0 com.google.android.tungsten.setupwraith
    adb connect <電視 IP>
    ```
+   第 2 步列出的不是 Google TV 的話沒測過，把這兩個套件換成第 2 步列出的那個。
 6. 再跑一次第 4 步的指令，印出 `tw.hungmi.justalauncher/.MainActivity` 就完成。
 
-做了第 5 步的副作用：之後要**新增 Google 帳號**或 Play 商店要求重新登入時，先
-`adb shell pm enable --user 0 com.google.android.tungsten.setupwraith`，弄完再停用。
+## 操作
 
-第 2 步列出的不是 Google TV 的話沒測過。第 4 步不過就把第 5 步的套件換成第 2 步列出的那個。
+D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那格（齒輪）。
 
-## 讓 AI agent 幫你裝
+排順序：焦點停在要移的那格，長按 OK，那格變半透明，用方向鍵移到想要的位置，按 OK 或返回放下。
+每格都能移，順序會記住；之後新裝的 app 排在最後。
 
-想讓 Claude Code 之類能跑終端機的 agent 代勞，貼給它：
+最後一格（HDMI 插頭圖示）打開 Google TV 內建的輸入端選單（HDMI 1 / HDMI 2 / …），跟遙控器的訊號源鍵是同一個畫面。
+裝置沒有這個內建選單（`com.google.android.tv.inputplayer`）就不會出現這格。
 
-```
-幫我執行 curl -LO https://github.com/hungmi/just-a-launcher/releases/latest/download/install.sh && bash install.sh
-每一步用白話解釋你在做什麼，腳本問的問題先問我再回答。
-```
+## 使用限制
+
+- **切換、還原首頁都要 adb**：Android TV 沒有「選預設首頁」的介面
+- **app 列表、其他 launcher（Projectivy 等）裡看不到它**，設定裡歸在「系統應用程式」。刻意沒有 app 入口，
+  才不會在自己的首頁裡多一格自己
+- **Google TV 機型停用了 setupwraith**（腳本和手動第 5 步都會）：之後要新增 Google 帳號或 Play 商店要求重新登入時，
+  先 `adb shell pm enable --user 0 com.google.android.tungsten.setupwraith`，弄完再停用
+- **畫面零文字**，HDMI 那格也只有圖示：測試機上只要出現一個字，字型檔、排版程式庫、字元貼圖快取就多 8MB。
+  零文字是 39MB 的前提
+- **只在 Google TV 機型測過**（BenQ GV01 等），其他系統的首頁套件名稱不同，要照手動步驟自己換
+- **除了排順序沒有其他功能**，也不打算加
 
 ## 還原 / 切回原本的首頁
 
@@ -165,26 +156,46 @@ adb shell cmd package set-home-activity --user 0 com.google.android.apps.tv.laun
 「啟用」/「開啟」，可以把它當一般 app 打開。**沒有 adb 不能做的**：把它設回 HOME 鍵的預設首頁，
 Android TV 沒有這個介面。移除 just-a-launcher 也一樣：先用 adb 照上面還原首頁，再 `adb uninstall tw.hungmi.justalauncher`，否則按 HOME 會黑畫面。
 
-## 操作
+## 量測細節
 
-D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那格（齒輪）。
+先清掉背景 app、按 HOME、焦點移到 app 格子，遙控器不碰，等 1 分鐘後連量 5 個 60 秒取平均。
+Google TV 帳戶的「自動播放影片」是關的（預設開）。
 
-排順序：焦點停在要移的那格，長按 OK，那格變半透明，用方向鍵移到想要的位置，按 OK 或返回放下。
-每格都能移，順序會記住；之後新裝的 app 排在最後。
+Google TV 首頁閒置時每秒重畫 60 次，也就是螢幕每次更新都重畫，焦點移到哪都一樣。首頁加畫面合成
+佔掉四分之三核，整台機器閒置就有近四成在忙。遙控器按鍵、影片解碼都跟它搶，這是「慢」的主因。
+「僅限應用程式模式」（設定 → 帳戶和設定檔 → 帳戶）拿掉推薦列和預覽影片，但記憶體沒有穩定變少
+（剛啟動 190MB、從一般模式切過去 175MB），頂部輪播廣告還在，焦點在 app 格子時光圈照樣每秒重畫 60 次，
+CPU 幾乎沒變。
 
-最後一格（HDMI 插頭圖示）打開 Google TV 內建的輸入端選單（HDMI 1 / HDMI 2 / …），跟遙控器的訊號源鍵是同一個畫面。
-裝置沒有這個內建選單（`com.google.android.tv.inputplayer`）就不會出現這格。
+Projectivy 關掉動態桌布和聚焦動畫後畫面不重畫，但主執行緒每秒仍被叫醒 80 次，所以還有 6% CPU。
+全機 12% 的底是 ueventd、kworker 等投影機背景程式。
 
-這格故意不放文字：測試機上畫面只要出現任何一個字，字型檔、排版程式庫、字元貼圖快取就要多 8MB。
-整個首頁零文字是 39MB 的前提。
+RAM 的影響是非線性的。2GB 的裝置扣掉系統後可用的只有三、四百 MB，首頁少佔 140MB，
+Netflix、YouTube 就能同時留在記憶體，切換 1 秒而不是被殺掉後冷啟動 10 秒。
+同樣的 140MB 在 8GB 的電視上幾乎沒感覺。
 
-app 列表、其他 launcher（Projectivy 等）裡不會有 just-a-launcher 這格，設定裡它歸在「系統應用程式」。
-這是刻意的：它沒有 app 入口，才不會在自己的首頁裡多一格自己。切換首頁只能用 adb，見「安裝」。
+量法：
 
-除了排順序，沒有其他功能，也不打算加。
+```
+adb shell am kill-all                                                # 先清背景 app
+adb shell top -b -d 60 -n 2 -m 10                                    # 看第二段：程序 % 佔一核，第一行總量（核心數 × 100%）扣掉 idle 是全機
+adb shell dumpsys gfxinfo <套件> | grep -E '^Uptime|Total frames'     # 量兩次：幀差 ÷ Uptime 差（毫秒）× 1000 = 每秒重畫
+adb shell dumpsys meminfo --package <套件> | grep 'TOTAL PSS'         # --package 才含副程序，多行要加總；TOTAL PSS 已含 swap
+```
+
+不要用 `dumpsys cpuinfo`：它每 5 分鐘才更新一次，連查會拿到同一組舊數字，還可能把你按遙控器那幾秒算進去。
+完整流程、切換首頁的指令和量測腳本在 [bench/](bench/README.md)。
+
+## 技術架構
+
+單一 Activity，Kotlin 約 200 行，零第三方依賴，APK 35KB。minSdk 21（Android 5.0）、targetSdk 34。
 
 ## 自己編（fork 才需要）
 
 GitHub Actions（`.github/workflows/build.yml`）：push 到 main 就編出 artifact，推 `v*` tag 會建 Release
 並附上 `just-a-launcher.apk`。需要在 repo secrets 放自己的簽名金鑰：`KEYSTORE_B64`（PKCS12 檔 base64）、
 `KEYSTORE_PASSWORD`，alias `just-a-launcher`。沒有 Android SDK 的機器也能用這條路編。
+
+## License
+
+[MIT License](LICENSE)。非 Google、BenQ 官方產品，與其無合作關係。
