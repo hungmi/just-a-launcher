@@ -1,7 +1,7 @@
 # just-a-launcher
 
 最小 Android TV launcher：一個 GridView 列出所有 TV app（LEANBACK_LAUNCHER），沒有動畫、桌布、
-推薦列、常駐服務。常駐記憶體約 35MB（Google TV 首頁 193MB、Projectivy 80MB）。
+推薦列、常駐服務。記憶體約 39MB（Google TV 首頁 183MB、Projectivy 78MB）。
 
 原本是給 BenQ GV01 投影機（Android TV 14、2GB RAM）做的，任何 Android TV / Google TV 都能用。
 
@@ -9,35 +9,45 @@
 
 ## 為什麼
 
-測試機：BenQ GV01 投影機（MediaTek MT9632，4 核 A55 1.55GHz，2GB RAM，Android TV 14）。
-停在首頁、焦點在 app 格子、遙控器不碰，每分鐘取樣一次連續 9 分鐘，數字全程沒有浮動：
+測試機：BenQ GV01 投影機（MediaTek MT9632，4 核 A53 1.55GHz，2GB RAM，Android TV 14）。
+先清掉背景 app、按 HOME、焦點移到 app 格子，遙控器不碰，等 1 分鐘後連量 5 個 60 秒取平均。
+Google TV 帳戶的「自動播放影片」是關的（預設開）：
 
 | 閒置 | Google TV 首頁 | Google TV 僅限應用程式模式 | Projectivy Launcher* | just-a-launcher |
 |---|---|---|---|---|
-| 常駐 RAM（PSS，含副程序） | 193MB | 136MB | 80MB + 27MB zram | 35MB |
-| 首頁程序 CPU（佔一核） | 48% | 40% | 2.6% | 0% |
-| 畫面合成 surfaceflinger（佔一核） | 33% | 32% | ~0 | 0% |
-| **全機 CPU（四核）** | **39%** | **38%** | ~15% | **10%** |
-| 每秒重畫 | 61 | 61 | 0 | 0 |
+| 記憶體（PSS，含副程序與 swap） | 183MB | 175–190MB | 78MB | 39MB |
+| 首頁程序 CPU（佔一核） | 43% | 39% | 6% | 0% |
+| 畫面合成 surfaceflinger（佔一核） | 32% | 32% | 1.7% | 0% |
+| **全機 CPU（四核）** | **37%** | **34%** | 13% | **12%** |
+| 每秒重畫 | 60 | 60 | 0 | 0 |
 | 廣告 | 有 | 頂部整頁輪播還在 | 無 | 無 |
 
-\* Projectivy 為單次取樣，已在其設定中關掉動態桌布和聚焦動畫；預設設定下每秒重畫 60 次。
+\* 已在 Projectivy 設定中關掉動態桌布和聚焦動畫；預設設定下每秒重畫 60 次。關掉後畫面不重畫，
+但主執行緒每秒仍被叫醒 80 次，所以還有 6% CPU。
 
-Google TV 首頁閒置時聚焦光圈每秒重畫 61 次，首頁加畫面合成佔掉 0.8 核，整台機器閒置就有四成在忙。
-遙控器按鍵、影片解碼都跟它搶，這是「慢」的主因。「僅限應用程式模式」（設定 → 帳戶與登入 → 帳戶）
-拿掉推薦列和預覽影片，省了 57MB，但頂部輪播廣告還在、光圈照樣重畫，CPU 幾乎沒變。
+全機的 12% 是投影機自己的背景程式（ueventd、kworker 等），換哪個首頁都省不掉。
 
-RAM 的影響是非線性的。2GB 的裝置扣掉系統後可用的只有三、四百 MB，首頁少佔 160MB，
+Google TV 首頁閒置時每秒重畫 60 次，也就是螢幕每次更新都重畫，焦點移到哪都一樣。首頁加畫面合成
+佔掉四分之三核，整台機器閒置就有近四成在忙。遙控器按鍵、影片解碼都跟它搶，這是「慢」的主因。
+「僅限應用程式模式」（設定 → 帳戶和設定檔 → 帳戶）拿掉推薦列和預覽影片，但記憶體沒有穩定變少
+（剛啟動 190MB、從一般模式切過去 175MB），頂部輪播廣告還在，焦點在 app 格子時光圈照樣每秒重畫 60 次，
+CPU 幾乎沒變。
+
+RAM 的影響是非線性的。2GB 的裝置扣掉系統後可用的只有三、四百 MB，首頁少佔 140MB，
 Netflix、YouTube 就能同時留在記憶體，切換 1 秒而不是被殺掉後冷啟動 10 秒。
-同樣的 160MB 在 8GB 的電視上幾乎沒感覺。
+同樣的 140MB 在 8GB 的電視上幾乎沒感覺。
 
-量法（`dumpsys cpuinfo` 每個程序的 % 是佔一核，只有 TOTAL 是佔全部核心）：
+量法：
 
 ```
-adb shell dumpsys cpuinfo | head                                    # 誰在吃 CPU
-adb shell dumpsys gfxinfo <套件> | grep 'Total frames'              # 隔 60 秒量兩次取差 = 重畫次數
-adb shell dumpsys meminfo <套件> | grep 'TOTAL PSS'
+adb shell am kill-all                                                # 先清背景 app
+adb shell top -b -d 60 -n 2 -m 10                                    # 看第二段：程序 % 佔一核，第一行總量（核心數 × 100%）扣掉 idle 是全機
+adb shell dumpsys gfxinfo <套件> | grep -E '^Uptime|Total frames'     # 量兩次：幀差 ÷ Uptime 差（毫秒）× 1000 = 每秒重畫
+adb shell dumpsys meminfo --package <套件> | grep 'TOTAL PSS'         # --package 才含副程序，多行要加總；TOTAL PSS 已含 swap
 ```
+
+不要用 `dumpsys cpuinfo`：它每 5 分鐘才更新一次，連查會拿到同一組舊數字，還可能把你按遙控器那幾秒算進去。
+完整流程、切換首頁的指令和量測腳本在 [bench/](bench/README.md)。
 
 ## 需求
 
@@ -163,7 +173,7 @@ D-pad 移動、OK 開 app、HOME 回首頁。「設定」用系統設定 app 那
 裝置沒有這個內建選單（`com.google.android.tv.inputplayer`）就不會出現這格。
 
 這格故意不放文字：測試機上畫面只要出現任何一個字，字型檔、排版程式庫、字元貼圖快取就要多 8MB。
-整個首頁零文字是 35MB 的前提。
+整個首頁零文字是 39MB 的前提。
 
 app 列表、其他 launcher（Projectivy 等）裡不會有 just-a-launcher 這格，設定裡它歸在「系統應用程式」。
 這是刻意的：它沒有 app 入口，才不會在自己的首頁裡多一格自己。切換首頁只能用 adb，見「安裝」。
