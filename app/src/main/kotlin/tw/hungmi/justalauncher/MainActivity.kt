@@ -102,22 +102,20 @@ class MainActivity : Activity() {
     private fun startMove(position: Int) {
         moving = position
         confirmDown = false
-        grid.setSelector(R.drawable.move_frame)
-        grid.invalidate() // setSelector 不會自己重畫
+        adapter.notifyDataSetChanged() // 那格變半透明
     }
 
     private fun moveTo(position: Int) {
         adapter.items = adapter.items.toMutableList().apply { add(position, removeAt(moving)) }
-        adapter.notifyDataSetChanged()
         moving = position
+        adapter.notifyDataSetChanged()
         grid.setSelection(position)
     }
 
     private fun endMove() {
         if (moving < 0) return
         moving = -1
-        grid.setSelector(R.drawable.focus_frame)
-        grid.invalidate()
+        adapter.notifyDataSetChanged()
         getPreferences(MODE_PRIVATE).edit()
             .putString(KEY_ORDER, adapter.items.joinToString("\n") { it.key })
             .apply()
@@ -174,6 +172,8 @@ class MainActivity : Activity() {
             val image = view.findViewById<ImageView>(R.id.image)
             val label = view.findViewById<TextView>(R.id.label)
             image.setImageDrawable(tile.image)
+            // 設在 ImageView 上：它沒有背景，半透明不用開離屏緩衝區
+            image.alpha = if (position == moving) 0.5f else 1f
             if (tile.isBanner) {
                 image.setPadding(0, 0, 0, 0)
                 label.visibility = View.GONE
