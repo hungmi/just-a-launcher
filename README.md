@@ -188,7 +188,7 @@ adb shell dumpsys meminfo --package <套件> | grep 'TOTAL PSS'         # --pack
 
 ## 技術架構
 
-單一 Activity，Kotlin 約 200 行，零第三方依賴，APK 35KB。minSdk 21（Android 5.0）、targetSdk 34。
+單一 Activity，Kotlin 不到 200 行，APK 不到 35KB，不依賴其他 APK。minSdk 21（Android 5.0）、targetSdk 34。
 
 ## 自己編（fork 才需要）
 
